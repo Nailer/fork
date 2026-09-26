@@ -55,7 +55,7 @@ function ForkTreeBase({ width, paths, progress, activeId, onOpen, showTwigs = fa
   const pad = Math.max(44, width * 0.12);
   const colW = n > 1 ? (width - pad * 2) / (n - 1) : width;
   const xs = paths.map((_, i) => (n === 1 ? cx : pad + i * colW));
-  const labelW = Math.min(colW + 8, 150);
+  const labelW = Math.min(colW - 6, 150);
   const height = treeHeight(showTwigs);
   const labelTop = (showTwigs ? TWIG_END : NODE_Y + NODE_R) + 10;
 
