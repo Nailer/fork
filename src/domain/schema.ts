@@ -1,0 +1,87 @@
+import { z } from 'zod';
+
+/**
+ * The single source of truth for what the AI layer is allowed to return.
+ * Every analysis is validated against this schema before it reaches the UI.
+ */
+
+export const DIMENSION_KEYS = [
+  'cost',
+  'time',
+  'flexibility',
+  'risk',
+  'effort',
+  'upside',
+  'shortTerm',
+  'longTerm',
+] as const;
+
+export type DimensionKey = (typeof DIMENSION_KEYS)[number];
+
+export const LEVELS = ['low', 'moderate', 'high'] as const;
+export type Level = (typeof LEVELS)[number];
+
+const text = z.string().trim().min(1).max(400);
+const shortText = z.string().trim().min(1).max(90);
+const list = (max: number) => z.array(text).min(1).max(max);
+
+export const RatingSchema = z.object({
+  dimension: z.enum(DIMENSION_KEYS),
+  level: z.enum(LEVELS),
+  note: z.string().trim().min(1).max(160),
+});
+
+export const BranchSchema = z.object({
+  label: shortText,
+  condition: text,
+  outcome: text,
+});
+
+export const ScenarioSchema = z.object({
+  id: z.string().trim().min(1).max(40),
+  title: shortText,
+  summary: text,
+  immediateEffects: list(5),
+  longerTermConsiderations: list(5),
+  benefits: list(5),
+  tradeoffs: list(5),
+  risks: list(5),
+  assumptions: list(5),
+  uncertaintyLevel: z.enum(LEVELS),
+  uncertainty: list(4),
+  importantVariables: list(5),
+  whatWouldChange: list(4),
+  questionsToConsider: list(4),
+  ratings: z.array(RatingSchema).min(1).max(DIMENSION_KEYS.length),
+  /** Deeper exploration (Fork Pro): where this path could split next. */
+  branches: z.array(BranchSchema).max(2).optional(),
+});
+
+export const VariableSchema = z.object({
+  name: shortText,
+  why: text,
+});
+
+export const CautionSchema = z.object({
+  domain: z.enum(['medical', 'legal', 'financial', 'safety', 'other']),
+  message: text,
+});
+
+export const DecisionAnalysisSchema = z.object({
+  decisionTitle: shortText,
+  summary: text,
+  variables: z.array(VariableSchema).min(1).max(6),
+  scenarios: z.array(ScenarioSchema).min(2).max(4),
+  comparisonDimensions: z.array(z.enum(DIMENSION_KEYS)).min(1).max(DIMENSION_KEYS.length),
+  questions: list(5),
+  assumptions: list(5),
+  missingInformation: z.array(text).max(4),
+  caution: CautionSchema.nullable(),
+});
+
+export type Rating = z.infer<typeof RatingSchema>;
+export type Branch = z.infer<typeof BranchSchema>;
+export type Scenario = z.infer<typeof ScenarioSchema>;
+export type Variable = z.infer<typeof VariableSchema>;
+export type Caution = z.infer<typeof CautionSchema>;
+export type DecisionAnalysis = z.infer<typeof DecisionAnalysisSchema>;
