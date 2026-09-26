@@ -74,7 +74,7 @@ export function normalizeAnalysis(input: unknown): unknown {
         const seenDims = new Set<string>();
         scenario.ratings = scenario.ratings
           .filter(isObject)
-          .map((r) => ({
+          .map((r): Record<string, unknown> => ({
             ...r,
             level: typeof r.level === 'string' ? r.level.toLowerCase() : r.level,
           }))
