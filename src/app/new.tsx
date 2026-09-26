@@ -14,6 +14,7 @@ import { config } from '../services/config';
 import { useSubscription } from '../services/revenuecat/SubscriptionProvider';
 import { usePending } from '../store/pending';
 import { useForkStore } from '../store/useForkStore';
+import { webNoOutline } from '../theme/web';
 import { colors, fonts, radius, space } from '../theme/tokens';
 
 const MIN_CHARS = 8;
@@ -172,6 +173,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: space.sm, marginBottom: space.xl },
   inputWrap: { marginTop: space.lg },
   input: {
+    ...webNoOutline,
     minHeight: 180,
     fontFamily: fonts.regular,
     fontSize: 18,
@@ -188,6 +190,7 @@ const styles = StyleSheet.create({
   optional: { gap: space.lg, marginTop: space.sm },
   field: { gap: space.sm },
   fieldInput: {
+    ...webNoOutline,
     minHeight: 48,
     fontFamily: fonts.regular,
     fontSize: 16,

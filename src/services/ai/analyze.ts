@@ -61,7 +61,11 @@ export const ERROR_COPY: Record<AnalysisErrorKind, { title: string; body: string
   cancelled: { title: 'Cancelled', body: '' },
 };
 
+type Endpoint = { url?: string; key?: string };
+
 type Options = {
+  /** Defaults to the build-time config; injectable for tests. */
+  endpoint?: Endpoint;
   signal?: AbortSignal;
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
@@ -73,9 +77,10 @@ const RETRYABLE: AnalysisErrorKind[] = ['invalid_output', 'server', 'timeout'];
 async function requestOnce(
   input: DecisionInput,
   depth: AnalysisDepth,
-  { signal, timeoutMs = 90_000, fetchImpl = fetch }: Options,
+  { signal, timeoutMs = 90_000, fetchImpl = fetch, endpoint = { url: config.aiUrl, key: config.aiKey } }: Options,
 ): Promise<DecisionAnalysis> {
-  if (!config.aiUrl) throw new AnalysisError('not_configured');
+  const { url, key } = endpoint;
+  if (!url) throw new AnalysisError('not_configured');
 
   const controller = new AbortController();
   let timedOut = false;
@@ -88,11 +93,11 @@ async function requestOnce(
 
   let response: Response;
   try {
-    response = await fetchImpl(config.aiUrl, {
+    response = await fetchImpl(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(config.aiKey ? { Authorization: `Bearer ${config.aiKey}`, apikey: config.aiKey } : {}),
+        ...(key ? { Authorization: `Bearer ${key}`, apikey: key } : {}),
       },
       body: JSON.stringify({ ...input, depth }),
       signal: controller.signal,

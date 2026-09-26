@@ -119,7 +119,6 @@ export default function ForkScreen() {
       <Text variant="display" accessibilityRole="header" style={styles.title}>
         {analysis.decisionTitle}
       </Text>
-      <Text style={styles.summary}>{analysis.summary}</Text>
 
       {analysis.caution ? (
         <Banner
@@ -150,6 +149,8 @@ export default function ForkScreen() {
       <Text variant="caption" align="center">
         Tap a path to explore what it changes. Paths are possibilities, not predictions.
       </Text>
+
+      <Text style={styles.summary}>{analysis.summary}</Text>
 
       {hasBranches && !isPro ? (
         <Pressable
@@ -209,8 +210,8 @@ export default function ForkScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   title: { marginTop: space.sm },
-  summary: { marginTop: space.md, marginBottom: space.lg },
-  tree: { alignItems: 'center', marginTop: space.lg },
+  summary: { marginTop: space.xl },
+  tree: { alignItems: 'center', marginTop: space.md },
   teaser: {
     flexDirection: 'row',
     alignItems: 'center',

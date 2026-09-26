@@ -30,11 +30,7 @@ export function useProgress(duration: number, key: unknown = 0, delay = 0) {
   const [t, setT] = useState(0);
 
   useEffect(() => {
-    if (reduced) {
-      setT(1);
-      return;
-    }
-    setT(0);
+    if (reduced) return;
     let frame = 0;
     let start: number | null = null;
     const tick = (now: number) => {
@@ -48,7 +44,7 @@ export function useProgress(duration: number, key: unknown = 0, delay = 0) {
     return () => cancelAnimationFrame(frame);
   }, [duration, delay, reduced, key]);
 
-  return t;
+  return reduced ? 1 : t;
 }
 
 /** Maps overall progress into a sub-range, e.g. stage(t, 0.3, 0.7). */

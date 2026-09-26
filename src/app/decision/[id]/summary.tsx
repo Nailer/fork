@@ -14,6 +14,7 @@ import { useDecisionParam } from '../../../hooks/useDecision';
 import { track } from '../../../services/analytics';
 import { useSubscription } from '../../../services/revenuecat/SubscriptionProvider';
 import { useForkStore } from '../../../store/useForkStore';
+import { webNoOutline } from '../../../theme/web';
 import { colors, fonts, pathColor, radius, space } from '../../../theme/tokens';
 
 const UNDECIDED = '__undecided__';
@@ -280,6 +281,7 @@ const styles = StyleSheet.create({
   },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
   note: {
+    ...webNoOutline,
     minHeight: 110,
     fontFamily: fonts.regular,
     fontSize: 16,

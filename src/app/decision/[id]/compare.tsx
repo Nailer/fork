@@ -24,12 +24,14 @@ export default function Compare() {
     if (decision) track('comparison_opened', { paths: decision.analysis.scenarios.length });
   }, [decision?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const scenarios = decision?.analysis.scenarios ?? [];
+  const scenarios = useMemo(() => decision?.analysis.scenarios ?? [], [decision]);
   const available = useMemo(() => availableDimensions(scenarios, ALL_DIMENSIONS), [scenarios]);
   const allowed = isPro ? available : available.filter((d) => FREE_DIMENSIONS.includes(d));
   const selected = (decision?.selectedDimensions ?? []).filter((d) => allowed.includes(d));
   const effective = selected.length ? selected : allowed.slice(0, 4);
-  const rows = useMemo(() => buildComparison(scenarios, effective), [scenarios, effective]);
+  const effectiveKey = effective.join(',');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content, not array identity
+  const rows = useMemo(() => buildComparison(scenarios, effective), [scenarios, effectiveKey]);
 
   if (!decision) return <MissingDecision />;
 

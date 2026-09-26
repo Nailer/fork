@@ -155,7 +155,7 @@ export function Button({ label, variant = 'primary', loading, disabled, icon, on
         <ActivityIndicator color={fg} />
       ) : (
         <View style={styles.buttonInner}>
-          <Text variant="heading" color={fg} style={styles.buttonLabel}>
+          <Text variant="heading" color={fg} style={styles.buttonLabel} numberOfLines={1}>
             {label}
           </Text>
           {icon ? <Icon name={icon} color={fg} size={20} /> : null}

@@ -127,11 +127,14 @@ export default function Paywall() {
               <Text variant="small">Loading subscription options…</Text>
             </View>
           ) : unavailable ? (
-            <Text variant="small" align="center">
-              {mode === 'unconfigured'
-                ? 'Subscriptions aren’t configured in this build yet.'
-                : 'Fork Pro isn’t available right now. Check your connection and try again.'}
-            </Text>
+            <>
+              <Button label="Start Fork Pro" variant="gold" disabled onPress={() => {}} />
+              <Text variant="caption" align="center">
+                {mode === 'unconfigured'
+                  ? 'Development build: RevenueCat isn’t configured, so purchases are disabled.'
+                  : 'Fork Pro isn’t available right now. Check your connection and try again.'}
+              </Text>
+            </>
           ) : (
             <>
               <Button label="Start Fork Pro" variant="gold" onPress={onBuy} loading={busy === 'buy'} disabled={busy !== null} />

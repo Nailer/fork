@@ -37,7 +37,7 @@ export default function Analyzing() {
   const [message, setMessage] = useState(0);
   const [cycle, setCycle] = useState(0);
   const [attempt, setAttempt] = useState(0);
-  const fade = useRef(new Animated.Value(1)).current;
+  const [fade] = useState(() => new Animated.Value(1));
   const controller = useRef<AbortController | null>(null);
 
   const run = useCallback(async () => {
@@ -45,8 +45,6 @@ export default function Analyzing() {
     controller.current?.abort();
     const ac = new AbortController();
     controller.current = ac;
-    setPhase({ kind: 'working' });
-    setMessage(0);
     try {
       const analysis = await analyzeDecision(input, depth, { signal: ac.signal });
       if (ac.signal.aborted) return;
@@ -72,6 +70,8 @@ export default function Analyzing() {
       router.replace('/home');
       return;
     }
+    // run() only sets state after awaiting the network, never synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void run();
     return () => controller.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,7 +110,16 @@ export default function Analyzing() {
           {copy.body}
         </Text>
         <View style={styles.actions}>
-          {retryable ? <Button label="Try again" onPress={() => setAttempt((a) => a + 1)} /> : null}
+          {retryable ? (
+            <Button
+              label="Try again"
+              onPress={() => {
+                setMessage(0);
+                setPhase({ kind: 'working' });
+                setAttempt((a) => a + 1);
+              }}
+            />
+          ) : null}
           {phase.error === 'not_configured' ? (
             <Button
               label="Explore the sample decision"

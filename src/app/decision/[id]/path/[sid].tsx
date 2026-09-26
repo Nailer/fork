@@ -83,7 +83,7 @@ export default function PathDetail() {
               onPress={() => router.replace(`/decision/${decision.id}/path/${next.id}`)}
             />
           ) : null}
-          <Button label="Compare paths" style={styles.flex} onPress={() => router.push(`/decision/${decision.id}/compare`)} />
+          <Button label="Compare" icon="compare" style={styles.flex} onPress={() => router.push(`/decision/${decision.id}/compare`)} />
         </View>
       }
     >
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     gap: space.md,
   },
-  heroGlow: { position: 'absolute', top: -120, right: -120, width: 240, height: 240, borderRadius: 120, opacity: 0.12 },
+  heroGlow: { position: 'absolute', top: -160, right: -160, width: 280, height: 280, borderRadius: 140, opacity: 0.07 },
   heroHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   heroSummary: {},
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

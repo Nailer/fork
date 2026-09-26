@@ -36,7 +36,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const mode = billingMode();
   const proCache = useForkStore((s) => s.proCache);
   const setProCache = useForkStore((s) => s.setProCache);
-  const [status, setStatus] = useState<Status>(mode === 'unconfigured' ? 'unavailable' : 'loading');
+  // Configure once, synchronously, so the first render already knows whether billing exists.
+  const [configured] = useState(() => mode !== 'unconfigured' && configurePurchases());
+  const [status, setStatus] = useState<Status>(configured ? 'loading' : 'unavailable');
   const [info, setInfo] = useState<CustomerInfo | null>(null);
   const [monthly, setMonthly] = useState<PurchasesPackage | null>(null);
   const started = useRef(false);
@@ -60,12 +62,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [applyInfo]);
 
   useEffect(() => {
-    if (started.current || mode === 'unconfigured') return;
+    if (started.current || !configured) return;
     started.current = true;
-    if (!configurePurchases()) {
-      setStatus('unavailable');
-      return;
-    }
     const unsubscribe = onCustomerInfo(applyInfo);
     Promise.all([refresh(), loadOffering()]).finally(() => setStatus('ready'));
     const sub = AppState.addEventListener('change', (state) => {
@@ -75,7 +73,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       unsubscribe();
       sub.remove();
     };
-  }, [applyInfo, loadOffering, mode, refresh]);
+  }, [applyInfo, configured, loadOffering, refresh]);
 
   const purchase = useCallback(async () => {
     let pkg = monthly;
