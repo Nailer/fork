@@ -1,0 +1,37 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "env": {
+        "EXPO_PUBLIC_FORK_API_URL": "https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision",
+        "EXPO_PUBLIC_REVENUECAT_ENTITLEMENT": "fork_pro",
+        "EXPO_PUBLIC_FORK_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3cnVxZHBidWdxanJreWZ2aXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MTk3NDMsImV4cCI6MjA5ODM5NTc0M30.r-M2bpe7BVPtcwJEU-GYn4H0RGRhEsGxXSuxIVV_FWY"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development"
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "environment": "preview",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "extends": "base",
+      "environment": "production",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
