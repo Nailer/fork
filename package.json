@@ -1,6 +1,12 @@
 {
   "name": "fork",
   "version": "1.0.0",
+  "description": "Explore the paths behind difficult decisions. An AI decision explorer built with Expo and RevenueCat.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nailer/fork.git"
+  },
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

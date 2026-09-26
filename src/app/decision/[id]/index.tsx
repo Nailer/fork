@@ -6,13 +6,14 @@ import { ForkTree } from '../../../components/ForkTree';
 import { Icon } from '../../../components/Icon';
 import { MissingDecision } from '../../../components/Missing';
 import { Text } from '../../../components/Text';
-import { Banner, Button, Chip, Header, PathBadge, ProBadge, Screen, SectionLabel } from '../../../components/ui';
+import { Banner, Button, Chip, Header, PathBadge, ProBadge, Screen, SectionLabel, TextLink } from '../../../components/ui';
 import { DIMENSIONS, LEVEL_LABEL } from '../../../domain/dimensions';
 import { ratingFor } from '../../../domain/compare';
 import type { DimensionKey, Scenario } from '../../../domain/schema';
 import { useDecisionParam } from '../../../hooks/useDecision';
 import { useProgress } from '../../../hooks/useProgress';
 import { useSubscription } from '../../../services/revenuecat/SubscriptionProvider';
+import { usePending } from '../../../store/pending';
 import { MAX_CONTENT_WIDTH, colors, pathColor, radius, space } from '../../../theme/tokens';
 
 const CARD_DIMS: DimensionKey[] = ['cost', 'risk', 'flexibility'];
@@ -83,6 +84,7 @@ export default function ForkScreen() {
   const { width: screenW } = useWindowDimensions();
   const treeWidth = Math.min(screenW, MAX_CONTENT_WIDTH) - space.xl * 2;
   const t = useProgress(1600, decision?.id, 150);
+  const setDraft = usePending((s) => s.setDraft);
 
   if (!decision) return <MissingDecision />;
 
@@ -134,6 +136,17 @@ export default function ForkScreen() {
           icon="check"
           title={leaning.index >= 0 ? `You leaned toward ${leaning.text}` : 'You were still deciding'}
           body={decision.note ? `“${decision.note}”` : undefined}
+          action={
+            <TextLink
+              label="Explore this decision again"
+              color={colors.text}
+              onPress={() => {
+                // Starts a fresh exploration from the same words; the saved one stays as it was.
+                setDraft({ ...decision.input });
+                router.push('/new');
+              }}
+            />
+          }
         />
       ) : null}
 
