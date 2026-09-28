@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ReactNode } from 'react';
+import { memo, useEffect, useId, useState, type ReactNode } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
@@ -88,6 +88,10 @@ function Halo({ x, y, color }: { x: number; y: number; color: string }) {
  * it identical on iOS, Android and web.
  */
 function ForkTreeBase({ width, paths, progress, activeId, onSelect, showTwigs = false, bare = false }: Props) {
+  // Gradient ids must be unique per instance: on web, several trees can be in the
+  // DOM at once and url(#id) would otherwise resolve to another tree's gradient.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const gid = (name: string) => `${name}${uid}`;
   const n = paths.length;
   const cx = width / 2;
   const pad = Math.max(46, width * 0.13);
@@ -104,25 +108,25 @@ function ForkTreeBase({ width, paths, progress, activeId, onSelect, showTwigs = 
     <View style={{ width, height }} accessibilityRole="image" accessibilityLabel={`Your decision splits into ${n} paths`}>
       <Svg width={width} height={height}>
         <Defs>
-          <RadialGradient id="rootGlow" cx="50%" cy="50%" r="50%">
+          <RadialGradient id={gid('rootGlow')} cx="50%" cy="50%" r="50%">
             <Stop offset="0" stopColor={colors.text} stopOpacity={0.35} />
             <Stop offset="1" stopColor={colors.text} stopOpacity={0} />
           </RadialGradient>
           {paths.map((p, i) => (
-            <LinearGradient key={p.id} id={`g${i}`} x1={cx} y1={SPLIT_Y} x2={xs[i]} y2={NODE_Y} gradientUnits="userSpaceOnUse">
+            <LinearGradient key={p.id} id={gid(`g${i}`)} x1={cx} y1={SPLIT_Y} x2={xs[i]} y2={NODE_Y} gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor={colors.text} stopOpacity={0.9} />
               <Stop offset="0.55" stopColor={pathColor(i)} stopOpacity={1} />
             </LinearGradient>
           ))}
           {paths.map((p, i) => (
-            <RadialGradient key={`n${p.id}`} id={`ng${i}`} cx="50%" cy="50%" r="50%">
+            <RadialGradient key={`n${p.id}`} id={gid(`ng${i}`)} cx="50%" cy="50%" r="50%">
               <Stop offset="0" stopColor={pathColor(i)} stopOpacity={0.35} />
               <Stop offset="1" stopColor={pathColor(i)} stopOpacity={0} />
             </RadialGradient>
           ))}
         </Defs>
 
-        <Circle cx={cx} cy={ROOT_Y} r={26 * rootT} fill="url(#rootGlow)" />
+        <Circle cx={cx} cy={ROOT_Y} r={26 * rootT} fill={`url(#${gid('rootGlow')})`} />
         <Path
           d={`M${cx} ${ROOT_Y} L${cx} ${SPLIT_Y}`}
           stroke={colors.text}
@@ -155,7 +159,7 @@ function ForkTreeBase({ width, paths, progress, activeId, onSelect, showTwigs = 
             <Group key={p.id}>
               <Path
                 d={branch.d}
-                stroke={`url(#g${i})`}
+                stroke={`url(#${gid(`g${i}`)})`}
                 strokeWidth={isActive ? 4.5 : 3}
                 strokeLinecap="round"
                 fill="none"
@@ -177,7 +181,7 @@ function ForkTreeBase({ width, paths, progress, activeId, onSelect, showTwigs = 
                   </Group>
                 );
               })}
-              <Circle cx={x} cy={NODE_Y} r={NODE_R * 1.9 * nodeT} fill={`url(#ng${i})`} opacity={opacity} />
+              <Circle cx={x} cy={NODE_Y} r={NODE_R * 1.9 * nodeT} fill={`url(#${gid(`ng${i}`)})`} opacity={opacity} />
               <Circle
                 cx={x}
                 cy={NODE_Y}

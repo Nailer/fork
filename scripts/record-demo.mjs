@@ -61,8 +61,18 @@ const context = await browser.newContext({ viewport: { width: 1920, height: 1080
 const page = await context.newPage();
 const cdp = await context.newCDPSession(page);
 const frames = [];
+let capturing = true;
+const pauseCapture = async () => {
+  capturing = false;
+  await cdp.send('Page.stopScreencast');
+};
+const resumeCapture = async () => {
+  if (frames.length) frames[frames.length - 1].cutAfter = true;
+  capturing = true;
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, everyNthFrame: 1 });
+};
 cdp.on('Page.screencastFrame', async ({ data, sessionId, metadata }) => {
-  frames.push({ data, t: metadata.timestamp });
+  if (capturing) frames.push({ data, t: metadata.timestamp });
   await cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
 });
 
@@ -106,68 +116,70 @@ await wait(1200);
 await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, everyNthFrame: 1 });
 await wait(4600);
 
-await caption('Meet Fork', 'Every choice creates a different path.', 'An AI decision explorer that never picks for you.');
+await caption('Meet Fork', 'Don’t ask what to choose.', 'An AI decision explorer that maps your options — and never picks for you.');
 await hideCard();
-await wait(3200);
+await wait(3000);
 await app.getByText('Skip').first().click();
-await wait(900);
+await wait(1200);
 
-await caption('1 · Describe it', 'Say what you’re deciding, in your own words.', 'A sentence or two is enough. Context is optional.');
-await app.getByLabel('Explore a decision').click();
-await wait(700);
+await caption('1 · Describe it', 'Say what you’re deciding, in your own words.', 'A sentence or two is enough.');
 const question = 'Should I buy a new laptop now or keep my current one for another year?';
-await app.getByLabel('Describe your decision').last().pressSequentially(question, { delay: 28 });
+await app.getByLabel('Describe a decision').last().pressSequentially(question, { delay: 26 });
 await wait(900);
 
 if (LIVE) {
-  await caption('2 · Fork builds your paths', 'Claude maps the decision into materially different paths.', 'Structured output, validated before anything renders.');
+  await caption('2 · Fork builds your paths', 'Claude maps the decision into genuinely different paths.', 'Structured JSON, validated with zod before anything renders.');
   await app.getByLabel('Build my paths').last().click();
-  await app.getByText('Tap a path to explore').last().waitFor({ timeout: 120000 });
+  await wait(6500);
+  // Cut the rest of the model wait out of the video: pause capture until the fork is ready.
+  await pauseCapture();
+  await app.getByText(/Tap a branch to preview/).last().waitFor({ timeout: 150000 });
+  await resumeCapture();
 } else {
-  await caption('2 · See the paths', 'Fork maps the decision into distinct paths.', 'Shown here: Fork’s bundled sample for this exact question.');
-  await app.getByLabel('Go back').last().click();
-  await wait(500);
+  await caption('2 · See the paths', 'Fork maps the decision into distinct paths.', 'Shown here: Fork’s bundled, clearly labelled sample for this question.');
   await app.getByLabel(/See an example fork/).last().click();
 }
-await wait(4600);
+await wait(3800);
 
-await caption('3 · Explore a path', 'Open any path to see what it changes.', 'Upside, tradeoffs, what could go wrong — and what it assumes.');
-await app.getByLabel(/^Path A: .*Open details\.$/).last().click();
-await wait(1500);
-await scroll(900, 30);
-await wait(1200);
-await scroll(1100, 30);
-await wait(1800);
-
-await caption('4 · Compare', 'Compare paths on what matters to you.', 'Qualitative, grounded in assumptions. No scores. No verdicts.');
-await app.getByLabel('Compare').last().click();
+await caption('3 · Explore a branch', 'Tap a branch to see what it changes.', 'The others recede. Every path shows its tradeoffs and assumptions.');
+await app.getByLabel(/^Path B:/).first().click();
+await wait(2600);
+await app.getByLabel(/^Explore path B/).last().click();
+await wait(1600);
+await scroll(700, 26);
 await wait(1400);
+await scroll(1100, 30);
+await wait(1600);
+
+await caption('4 · Compare', 'Compare paths on what matters to you.', 'Qualitative readings. The biggest difference is flagged. No scores, no winner.');
+await app.getByLabel('Compare').last().click();
+await wait(1600);
 await app.getByLabel('Time', { exact: true }).last().click();
-await wait(700);
-await scroll(700, 24);
-await wait(2400);
+await wait(600);
+await scroll(650, 24);
+await wait(2200);
 
-await caption('5 · You choose', 'Fork keeps the decision yours.', 'Pick the path you lean toward and note why — for future you.');
+await caption('5 · You choose', 'The decision stays yours.', 'Pick the path you lean toward and note why — saved to your journal.');
 await app.getByLabel('Choose a path').last().click();
-await wait(1000);
+await wait(900);
 await scroll(1600, 40);
-await wait(600);
-await app.getByLabel(/^Path C:/).last().click();
 await wait(500);
-await app.getByLabel("Why I'm choosing this").last().pressSequentially('Cheapest way to find out if it’s hardware or software.', { delay: 22 });
-await wait(600);
+await app.getByLabel(/^Path C:/).last().click();
+await wait(400);
+await app.getByLabel("Why I'm choosing this").last().pressSequentially('Cheapest way to learn if it’s hardware or software.', { delay: 20 });
+await wait(500);
 await app.getByLabel(/Keep this decision|Update decision/).last().click();
-await wait(2000);
+await wait(1800);
 await app.getByLabel('Go to my decisions').last().click();
-await wait(2400);
+await wait(2200);
 
-await caption('Fork Pro · powered by RevenueCat', 'Go deeper when a decision deserves it.', 'Unlimited decisions, full history, richer paths and comparisons — one subscription entitlement: fork_pro.');
+await caption('Fork Pro · RevenueCat', 'Explore more possibilities.', 'Subscription + fork_pro entitlement powered by RevenueCat — real price from the current offering.');
 await app.getByLabel('Go back').last().click();
 await wait(700);
-await app.getByLabel(/free explorations left this week|Fork Pro\./).last().click();
-await wait(5200);
+await app.getByLabel(/^Fork Pro: unlimited/).last().click();
+await wait(5000);
 
-await card('Fork', 'Don’t ask what to choose. Explore what each choice changes.\ngithub.com/Nailer/fork · Built for RevenueCat Shipaton 2026');
+await card('Fork', 'Fork doesn’t decide for you. It helps you see what your decision changes.\ngithub.com/Nailer/fork · RevenueCat Shipaton 2026 · Next Gen');
 await page.evaluate(() => (document.getElementById('cs').style.whiteSpace = 'pre-line'));
 await wait(4000);
 const stoppedAt = Date.now() / 1000; // screencast timestamps are epoch seconds
@@ -181,7 +193,9 @@ frames.forEach((f, i) => {
   writeFileSync(file, Buffer.from(f.data, 'base64'));
   // Frames only arrive when pixels change, so the last one holds until recording stopped.
   const next = frames[i + 1]?.t ?? Math.max(stoppedAt, f.t + 0.5);
-  list += `file '${file}'\nduration ${Math.max(0.001, next - f.t).toFixed(4)}\n`;
+  // A paused stretch (waiting for the model) is cut down to a short hold.
+  const duration = f.cutAfter ? 0.4 : next - f.t;
+  list += `file '${file}'\nduration ${Math.max(0.001, duration).toFixed(4)}\n`;
 });
 list += `file '${join(frameDir, `${String(frames.length - 1).padStart(5, '0')}.jpg`)}'\n`;
 writeFileSync(join(frameDir, 'list.txt'), list);

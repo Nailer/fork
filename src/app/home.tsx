@@ -27,19 +27,24 @@ const EXAMPLES = [
   { label: 'Move cities?', text: 'Should I move to a new city for more opportunities or stay close to family?' },
 ];
 
+/** The full-size tree geometry, scaled down — small widths would crowd the nodes. */
 function SamplePreview() {
   const t = useProgress(1400, 'home-sample', 400);
   return (
-    <ForkTree
-      width={120}
-      bare
-      progress={t}
-      paths={[
-        { id: 'a', title: '' },
-        { id: 'b', title: '' },
-        { id: 'c', title: '' },
-      ]}
-    />
+    <View style={styles.previewBox} aria-hidden>
+      <View style={styles.previewScale}>
+        <ForkTree
+          width={240}
+          bare
+          progress={t}
+          paths={[
+            { id: 'a', title: '' },
+            { id: 'b', title: '' },
+            { id: 'c', title: '' },
+          ]}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -139,9 +144,7 @@ export default function Home() {
                       <View key={i} style={[styles.pip, i < remaining && styles.pipOn]} />
                     ))}
                   </View>
-                  <Text variant="caption">
-                    {remaining} of {FREE_WEEKLY_EXPLORATIONS} free this week
-                  </Text>
+                  <Text variant="caption">{remaining} free left this week</Text>
                 </>
               )}
             </Pressable>
@@ -330,6 +333,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   sampleText: { flex: 1, gap: space.xs },
+  previewBox: { width: 116, height: 116, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  previewScale: { width: 240, height: 232, transform: [{ scale: 0.5 }] },
   sampleCta: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
   pro: {
     marginTop: space.md,
