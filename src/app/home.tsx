@@ -1,7 +1,7 @@
 import { useNetInfo } from '@react-native-community/netinfo';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { DecisionRow } from '../components/DecisionRow';
 import { ForkMark } from '../components/ForkMark';
@@ -58,7 +58,14 @@ export default function Home() {
   const remaining = remainingExplorations(explorations, isPro);
   const [focused, setFocused] = useState(false);
   const net = useNetInfo();
-  const offline = net.isConnected === false || net.isInternetReachable === false;
+  // On web, NetInfo may probe the GitHub Pages account root (e.g. /) rather
+  // than this project path (/fork/). That root can legitimately return 404 and
+  // must not be treated as an offline signal. Use the browser's native online
+  // status on web, while keeping NetInfo reachability checks for native apps.
+  const offline =
+    Platform.OS === 'web'
+      ? typeof navigator !== 'undefined' && navigator.onLine === false
+      : net.isConnected === false || net.isInternetReachable === false;
 
   const text = draft.description;
   const ready = text.trim().length >= MIN_DESCRIPTION;
