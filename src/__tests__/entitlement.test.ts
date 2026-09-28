@@ -1,6 +1,6 @@
 import type { CustomerInfo } from 'react-native-purchases';
 
-import { billingMode } from '../services/config';
+import { modeForKey } from '../services/config';
 import { describePurchaseError, hasProEntitlement } from '../services/revenuecat/purchases';
 
 const info = (active: Record<string, { isActive: boolean }>) =>
@@ -37,9 +37,9 @@ describe('purchase error handling', () => {
 
 describe('billing mode', () => {
   it('distinguishes test, production and unconfigured', () => {
-    expect(billingMode(undefined)).toBe('unconfigured');
-    expect(billingMode('test_abc')).toBe('test');
-    expect(billingMode('appl_abc')).toBe('production');
-    expect(billingMode('goog_abc')).toBe('production');
+    expect(modeForKey(undefined)).toBe('unconfigured');
+    expect(modeForKey('test_abc')).toBe('test');
+    expect(modeForKey('appl_abc')).toBe('production');
+    expect(modeForKey('goog_abc')).toBe('production');
   });
 });

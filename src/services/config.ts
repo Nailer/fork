@@ -41,7 +41,9 @@ export const config = {
 
 export type BillingMode = 'test' | 'production' | 'unconfigured';
 
-export function billingMode(key = config.revenueCatKey): BillingMode {
+export function modeForKey(key: string | undefined | null): BillingMode {
   if (!key) return 'unconfigured';
   return key.startsWith('test_') ? 'test' : 'production';
 }
+
+export const billingMode = (): BillingMode => modeForKey(config.revenueCatKey);
