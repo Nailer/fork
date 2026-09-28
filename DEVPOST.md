@@ -142,4 +142,4 @@ The AI never recommends a choice; that’s deliberate. The sample decision is cl
 ---
 
 ## Screenshots to upload (in this order)
-`docs/screenshots/`: fork, path, compare, paywall, home, journal, choose, analysis. Use the final set generated from the current build.
+From `docs/screenshots/`: `05-fork-selected`, `04-fork`, `07-weigh-it-up`, `08-compare`, `03-analyzing`, `02-home`, `09-choose`, `10-journal`, `01-onboarding`, **plus one paywall screenshot you take yourself** (it needs RevenueCat reachable, so it shows the real price).
