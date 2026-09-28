@@ -144,7 +144,9 @@ export default function Home() {
                       <View key={i} style={[styles.pip, i < remaining && styles.pipOn]} />
                     ))}
                   </View>
-                  <Text variant="caption">{remaining} free left this week</Text>
+                  <Text variant="caption" numberOfLines={1}>
+                    {remaining} left this week
+                  </Text>
                 </>
               )}
             </Pressable>

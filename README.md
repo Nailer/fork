@@ -8,7 +8,7 @@
 
 <p align="center">
   An AI decision explorer for iOS, Android and web, built with Expo, Claude and RevenueCat.<br/>
-  Submitted to <strong>RevenueCat Shipaton 2026</strong>. Targeting the <strong>Next Gen</strong> and <strong>RevenueCat Design</strong> awards.
+  Submitted to <strong>RevenueCat Shipaton 2026</strong>. Submitted for the <strong>Next Gen</strong> award.
 </p>
 
 <p align="center">
@@ -55,15 +55,15 @@ Fork’s core mechanic is **interactive decision scenarios**:
 Describe → Fork builds 2–4 paths → Explore each path → Compare → Choose & note → Journal
 ```
 
-| Onboarding | Home | Fork | Path | Compare |
+| Onboarding | Home | Analysing | Fork | Branch selected |
 |---|---|---|---|---|
-| <img src="docs/screenshots/00-onboarding.png" width="160"/> | <img src="docs/screenshots/01-home.png" width="160"/> | <img src="docs/screenshots/02-fork.png" width="160"/> | <img src="docs/screenshots/03-path.png" width="160"/> | <img src="docs/screenshots/04-compare.png" width="160"/> |
+| <img src="docs/screenshots/01-onboarding.png" width="160"/> | <img src="docs/screenshots/02-home.png" width="160"/> | <img src="docs/screenshots/03-analyzing.png" width="160"/> | <img src="docs/screenshots/04-fork.png" width="160"/> | <img src="docs/screenshots/05-fork-selected.png" width="160"/> |
 
-| Choose | Journal | Fork Pro | Describe | Error state |
+| Path | Weigh it up | Compare | Choose | Journal |
 |---|---|---|---|---|
-| <img src="docs/screenshots/05-choose.png" width="160"/> | <img src="docs/screenshots/06-journal.png" width="160"/> | <img src="docs/screenshots/07-paywall.png" width="160"/> | <img src="docs/screenshots/08-describe.png" width="160"/> | <img src="docs/screenshots/09-error-offline.png" width="160"/> |
+| <img src="docs/screenshots/06-path.png" width="160"/> | <img src="docs/screenshots/07-weigh-it-up.png" width="160"/> | <img src="docs/screenshots/08-compare.png" width="160"/> | <img src="docs/screenshots/09-choose.png" width="160"/> | <img src="docs/screenshots/10-journal.png" width="160"/> |
 
-<sub>Screenshots are from the web build at iPhone 14 size, taken with RevenueCat keys not configured, so the paywall shows its “development build” state.</sub>
+<sub>Web build at iPhone 14 size, showing the clearly labelled sample decision. The Fork Pro paywall (real price from RevenueCat) is shown in the demo video.</sub>
 
 ## Key features
 
@@ -144,7 +144,8 @@ Requirements: Node 20+ and npm. For a phone, install **Expo Go** or make a devel
 git clone https://github.com/Nailer/fork.git
 cd fork
 npm install
-cp .env.example .env     # fill in the values (see below)
+# No .env needed: the public AI endpoint and RevenueCat Test Store key are built in.
+# To use your own backend or RevenueCat project: cp .env.example .env
 npm run web              # or: npm start (then scan the QR code with Expo Go)
 ```
 
@@ -217,7 +218,7 @@ The tests cover schema validation, recovery from malformed AI output, usage limi
 ## Hackathon submission
 
 - **Event:** RevenueCat Shipaton 2026
-- **Awards targeted:** Next Gen (student) and RevenueCat Design Award
+- **Award:** Next Gen (student): public open-source repo + demo video
 - **Repository:** https://github.com/Nailer/fork (MIT)
 - **Submission copy:** [`DEVPOST.md`](DEVPOST.md) · **Release steps:** [`FINAL_RELEASE.md`](FINAL_RELEASE.md)
 
