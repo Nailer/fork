@@ -30,11 +30,15 @@ function revenueCatKey(): string | undefined {
 }
 
 const customUrl = read(process.env.EXPO_PUBLIC_FORK_API_URL);
+const resolvedAiUrl = customUrl ?? DEFAULT_AI_URL;
+const configuredAiKey = read(process.env.EXPO_PUBLIC_FORK_API_KEY);
 
 export const config = {
-  aiUrl: customUrl ?? DEFAULT_AI_URL,
-  // Only fall back to the default key when talking to the default endpoint.
-  aiKey: read(process.env.EXPO_PUBLIC_FORK_API_KEY) ?? (customUrl ? undefined : DEFAULT_AI_KEY),
+  aiUrl: resolvedAiUrl,
+  // The project's default Supabase endpoint always uses its public anon key when
+  // no build-time override is supplied. This keeps GitHub Pages/live preview
+  // functional even when the endpoint URL is explicitly injected by CI.
+  aiKey: configuredAiKey ?? (resolvedAiUrl === DEFAULT_AI_URL ? DEFAULT_AI_KEY : undefined),
   revenueCatKey: revenueCatKey(),
   entitlementId: read(process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT) ?? 'fork_pro',
 };
