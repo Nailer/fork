@@ -1,135 +1,252 @@
+import { useNetInfo } from '@react-native-community/netinfo';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { DecisionRow } from '../components/DecisionRow';
 import { ForkMark } from '../components/ForkMark';
+import { ForkTree } from '../components/ForkTree';
 import { Icon } from '../components/Icon';
 import { Text } from '../components/Text';
-import { Button, IconButton, ProBadge, Screen, SectionLabel, TextLink, haptic } from '../components/ui';
+import { FadeIn, IconButton, ProBadge, Screen, SectionLabel, TextLink, haptic } from '../components/ui';
 import { FREE_WEEKLY_EXPLORATIONS, remainingExplorations } from '../domain/limits';
+import { MIN_DESCRIPTION, startExploration } from '../features/explore';
 import { openSample } from '../features/openSample';
+import { useProgress } from '../hooks/useProgress';
+import { config } from '../services/config';
 import { useSubscription } from '../services/revenuecat/SubscriptionProvider';
 import { usePending } from '../store/pending';
 import { savedOf, useForkStore } from '../store/useForkStore';
-import { colors, fonts, pathColor, radius, space } from '../theme/tokens';
+import { alpha, colors, elevation, fonts, pathColor, radius, space } from '../theme/tokens';
+import { webNoOutline } from '../theme/web';
 
-const PROMPTS = [
-  { label: 'Should I buy this?', starter: 'I’m deciding whether to buy ' },
-  { label: 'Should I take this opportunity?', starter: 'I’ve been offered ' },
-  { label: 'How should I spend my weekend?', starter: 'This weekend I could either ' },
-  { label: 'Should I wait or act now?', starter: 'I’m not sure whether to act now or wait on ' },
+const EXAMPLES = [
+  { label: 'Buy now or wait?', text: 'Should I buy a new laptop now or keep my current one for another year?' },
+  { label: 'Take the offer?', text: 'I’ve been offered a job at a startup. Should I take it or stay at my stable job?' },
+  { label: 'Weekend plans', text: 'Should I spend this weekend studying for exams or building my side project?' },
+  { label: 'Move cities?', text: 'Should I move to a new city for more opportunities or stay close to family?' },
 ];
+
+function SamplePreview() {
+  const t = useProgress(1400, 'home-sample', 400);
+  return (
+    <ForkTree
+      width={120}
+      bare
+      progress={t}
+      paths={[
+        { id: 'a', title: '' },
+        { id: 'b', title: '' },
+        { id: 'c', title: '' },
+      ]}
+    />
+  );
+}
 
 export default function Home() {
   const { isPro } = useSubscription();
   const decisions = useForkStore((s) => s.decisions);
   const explorations = useForkStore((s) => s.explorations);
+  const draft = usePending((s) => s.draft);
   const setDraft = usePending((s) => s.setDraft);
   const saved = useMemo(() => savedOf(decisions), [decisions]);
   const remaining = remainingExplorations(explorations, isPro);
+  const [focused, setFocused] = useState(false);
+  const net = useNetInfo();
+  const offline = net.isConnected === false || net.isInternetReachable === false;
 
-  const startWith = (starter?: string) => {
-    if (starter) setDraft({ description: starter });
-    router.push('/new');
+  const text = draft.description;
+  const ready = text.trim().length >= MIN_DESCRIPTION;
+  const aiReady = Boolean(config.aiUrl);
+
+  const submit = () => {
+    if (!ready) return;
+    if (offline || !aiReady || remaining === 0) {
+      // The create screen explains what's wrong and offers the right next step.
+      router.push('/new');
+      return;
+    }
+    startExploration(draft, isPro);
   };
 
   return (
     <Screen>
       <View style={styles.topBar}>
         <View style={styles.brand}>
-          <ForkMark size={26} />
+          <ForkMark size={24} />
           <Text variant="title" style={styles.wordmark}>
             Fork
           </Text>
           {isPro ? <ProBadge /> : null}
         </View>
         <View style={styles.topActions}>
-          <IconButton icon="history" label="Decision history" onPress={() => router.push('/history')} />
-          <IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />
+          <IconButton icon="history" label="Decision journal" onPress={() => router.push('/history')} framed />
+          <IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} framed />
         </View>
       </View>
 
-      <View style={styles.hero}>
+      <FadeIn style={styles.hero}>
         <Text variant="hero" accessibilityRole="header">
-          What’s on your mind?
+          Don’t ask what to choose.
         </Text>
-        <Text style={styles.heroBody}>Turn a difficult decision into a set of paths you can explore.</Text>
-      </View>
+        <Text variant="hero" color={colors.textDim} style={styles.heroItalic}>
+          Explore what each choice changes.
+        </Text>
+      </FadeIn>
 
-      <Button label="Explore a decision" icon="arrow" onPress={() => startWith()} />
-
-      <Pressable
-        onPress={() => (isPro ? undefined : router.push({ pathname: '/paywall', params: { reason: 'upgrade' } }))}
-        disabled={isPro}
-        accessibilityRole={isPro ? 'text' : 'button'}
-        accessibilityLabel={
-          isPro
-            ? 'Fork Pro. Unlimited explorations.'
-            : `${remaining} of ${FREE_WEEKLY_EXPLORATIONS} free explorations left this week. Tap to see Fork Pro.`
-        }
-        style={styles.allowance}
-      >
-        {isPro ? (
-          <Text variant="small" color={colors.gold}>
-            Fork Pro · Unlimited explorations
+      <FadeIn delay={120}>
+        <View style={[styles.composer, focused && styles.composerFocused]}>
+          <Text variant="label" color={colors.iris}>
+            What’s on your mind?
           </Text>
-        ) : (
-          <>
-            <View style={styles.pips}>
-              {Array.from({ length: FREE_WEEKLY_EXPLORATIONS }).map((_, i) => (
-                <View key={i} style={[styles.pip, i < remaining && styles.pipOn]} />
-              ))}
-            </View>
-            <Text variant="small">
-              {remaining} of {FREE_WEEKLY_EXPLORATIONS} free explorations left this week
-            </Text>
-          </>
-        )}
-      </Pressable>
-
-      <SectionLabel>Start from a prompt</SectionLabel>
-      <View style={styles.grid}>
-        {PROMPTS.map((p, i) => (
-          <Pressable
-            key={p.label}
-            onPress={() => {
-              haptic.tap();
-              startWith(p.starter);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={p.label}
-            style={({ pressed }) => [styles.prompt, pressed && styles.pressed]}
-          >
-            <View style={[styles.promptDot, { backgroundColor: pathColor(i) }]} />
-            <Text variant="bodyStrong" style={styles.promptText}>
-              {p.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Pressable
-        onPress={openSample}
-        accessibilityRole="button"
-        accessibilityLabel="See an example fork: new laptop now or one more year. Sample decision."
-        style={({ pressed }) => [styles.sample, pressed && styles.pressed]}
-      >
-        <View style={styles.sampleText}>
-          <Text variant="label" color={colors.gold}>
-            See an example
-          </Text>
-          <Text variant="title">New laptop now, or one more year?</Text>
-          <Text variant="small">A sample fork you can explore freely — no allowance used.</Text>
+          <TextInput
+            value={text}
+            onChangeText={(v) => setDraft({ ...draft, description: v.slice(0, 2000) })}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            placeholder="Describe a decision you’re weighing…"
+            placeholderTextColor={colors.textFaint}
+            multiline
+            textAlignVertical="top"
+            style={styles.input}
+            accessibilityLabel="Describe a decision"
+            maxLength={2000}
+          />
+          <View style={styles.composerFoot}>
+            <Pressable
+              onPress={() => (isPro ? undefined : router.push({ pathname: '/paywall', params: { reason: 'upgrade' } }))}
+              disabled={isPro}
+              accessibilityRole={isPro ? 'text' : 'button'}
+              accessibilityLabel={
+                isPro
+                  ? 'Fork Pro. Unlimited explorations.'
+                  : `${remaining} of ${FREE_WEEKLY_EXPLORATIONS} free explorations left this week. Opens Fork Pro.`
+              }
+              style={styles.allowance}
+              hitSlop={6}
+            >
+              {isPro ? (
+                <>
+                  <Icon name="infinity" size={16} color={colors.gold} />
+                  <Text variant="caption" color={colors.gold}>
+                    Unlimited
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View style={styles.pips}>
+                    {Array.from({ length: FREE_WEEKLY_EXPLORATIONS }).map((_, i) => (
+                      <View key={i} style={[styles.pip, i < remaining && styles.pipOn]} />
+                    ))}
+                  </View>
+                  <Text variant="caption">
+                    {remaining} of {FREE_WEEKLY_EXPLORATIONS} free this week
+                  </Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                haptic.impact();
+                submit();
+              }}
+              disabled={!ready}
+              accessibilityRole="button"
+              accessibilityLabel="Build my paths"
+              accessibilityState={{ disabled: !ready }}
+              style={({ pressed }) => [styles.go, !ready && styles.goDisabled, pressed && styles.pressed]}
+            >
+              <Text variant="button" color={colors.bg}>
+                Build my paths
+              </Text>
+              <Icon name="arrow" size={17} color={colors.bg} strokeWidth={2.2} />
+            </Pressable>
+          </View>
         </View>
-        <Icon name="arrow" color={colors.text} />
-      </Pressable>
+        <View style={styles.contextLink}>
+          <TextLink label="Add budget, priorities or timeframe" onPress={() => router.push('/new')} />
+        </View>
+      </FadeIn>
+
+      <FadeIn delay={220}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.examples}
+          style={styles.examplesWrap}
+          keyboardShouldPersistTaps="handled"
+        >
+          {EXAMPLES.map((e, i) => (
+            <Pressable
+              key={e.label}
+              onPress={() => {
+                haptic.tap();
+                setDraft({ description: e.text });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Example: ${e.text}`}
+              style={({ pressed }) => [styles.example, pressed && styles.pressed]}
+            >
+              <View style={[styles.exampleDot, { backgroundColor: pathColor(i) }]} />
+              <Text variant="small" color={colors.text} style={styles.exampleText}>
+                {e.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </FadeIn>
+
+      <FadeIn delay={300}>
+        <Pressable
+          onPress={openSample}
+          accessibilityRole="button"
+          accessibilityLabel="See an example fork: new laptop now or one more year. Sample decision."
+          style={({ pressed }) => [styles.sample, pressed && styles.pressed]}
+        >
+          <View style={styles.sampleText}>
+            <Text variant="label" color={colors.gold}>
+              See an example
+            </Text>
+            <Text variant="title">New laptop now, or one more year?</Text>
+            <View style={styles.sampleCta}>
+              <Text variant="small">Explore a sample fork</Text>
+              <Icon name="arrow" size={15} color={colors.textDim} />
+            </View>
+          </View>
+          <SamplePreview />
+        </Pressable>
+      </FadeIn>
+
+      {!isPro ? (
+        <Pressable
+          onPress={() => router.push({ pathname: '/paywall', params: { reason: 'upgrade' } })}
+          accessibilityRole="button"
+          accessibilityLabel="Fork Pro: unlimited explorations and deeper paths"
+          style={({ pressed }) => [styles.pro, pressed && styles.pressed]}
+        >
+          <View style={styles.proIcon}>
+            <Icon name="spark" size={18} color={colors.gold} />
+          </View>
+          <View style={styles.flex}>
+            <Text variant="subheading" color={colors.text}>
+              Fork Pro
+            </Text>
+            <Text variant="caption">Unlimited explorations, deeper paths, full journal</Text>
+          </View>
+          <Icon name="arrow" size={18} color={colors.gold} />
+        </Pressable>
+      ) : null}
 
       <SectionLabel right={saved.length > 3 ? <TextLink label="See all" onPress={() => router.push('/history')} /> : undefined}>
-        Your decisions
+        Recent decisions
       </SectionLabel>
       {saved.length === 0 ? (
-        <Text variant="small">Decisions you keep will live here, so you can revisit why you chose what you chose.</Text>
+        <View style={styles.emptyRecent}>
+          <Icon name="history" size={18} color={colors.textFaint} />
+          <Text variant="small" style={styles.flex}>
+            Decisions you keep appear here, with the path you leaned toward and why.
+          </Text>
+        </View>
       ) : (
         <View style={styles.list}>
           {saved.slice(0, 3).map((d) => (
@@ -142,43 +259,106 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.sm },
   brand: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   wordmark: { marginRight: space.xs },
-  topActions: { flexDirection: 'row', marginRight: -space.sm },
-  hero: { marginTop: space.xxl, marginBottom: space.xl, gap: space.md },
-  heroBody: { fontSize: 18, lineHeight: 27 },
-  allowance: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md, alignSelf: 'center', minHeight: 32 },
+  topActions: { flexDirection: 'row', gap: space.sm },
+  hero: { marginTop: space.xl, marginBottom: space.xl },
+  heroItalic: { fontFamily: fonts.displayItalic },
+  composer: {
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+    padding: space.lg,
+    gap: space.sm,
+    ...elevation.raised,
+  },
+  composerFocused: { borderColor: alpha(colors.iris, 0.6) },
+  input: {
+    ...webNoOutline,
+    minHeight: 92,
+    fontFamily: fonts.regular,
+    fontSize: 18,
+    lineHeight: 26,
+    color: colors.text,
+    paddingVertical: space.xs,
+  },
+  composerFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  allowance: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 36, flexShrink: 1 },
   pips: { flexDirection: 'row', gap: 4 },
   pip: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.lineStrong },
   pipOn: { backgroundColor: colors.text },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md },
-  prompt: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    minHeight: 96,
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
+  go: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    minHeight: 46,
+    paddingHorizontal: space.lg,
+  },
+  goDisabled: { opacity: 0.35 },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  contextLink: { alignItems: 'flex-start', marginTop: space.xs },
+  examplesWrap: { marginHorizontal: -space.xl, marginTop: space.sm },
+  examples: { paddingHorizontal: space.xl, gap: space.sm },
+  example: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: 40,
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.line,
-    justifyContent: 'space-between',
-    gap: space.md,
+    backgroundColor: alpha('#FFFFFF', 0.03),
   },
-  promptDot: { width: 10, height: 10, borderRadius: 5 },
-  promptText: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21 },
-  pressed: { opacity: 0.75 },
+  exampleDot: { width: 7, height: 7, borderRadius: 4 },
+  exampleText: { fontFamily: fonts.medium },
   sample: {
-    marginTop: space.lg,
+    marginTop: space.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    padding: space.lg,
+    paddingRight: space.sm,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  sampleText: { flex: 1, gap: space.xs },
+  sampleCta: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
+  pro: {
+    marginTop: space.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.gold + '55',
-    backgroundColor: colors.raised,
+    borderColor: alpha(colors.gold, 0.3),
+    backgroundColor: alpha(colors.gold, 0.06),
   },
-  sampleText: { flex: 1, gap: space.xs },
+  proIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: alpha(colors.gold, 0.14),
+  },
+  emptyRecent: {
+    flexDirection: 'row',
+    gap: space.md,
+    alignItems: 'center',
+    padding: space.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderStyle: 'dashed',
+  },
   list: { gap: space.md },
 });

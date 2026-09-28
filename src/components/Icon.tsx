@@ -1,5 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { decorative } from '../theme/a11y';
 import { colors } from '../theme/tokens';
 
 export type IconName =
@@ -16,7 +17,15 @@ export type IconName =
   | 'compare'
   | 'offline'
   | 'info'
-  | 'edit';
+  | 'edit'
+  | 'branch'
+  | 'infinity'
+  | 'layers'
+  | 'bolt'
+  | 'alert'
+  | 'question'
+  | 'up'
+  | 'swap';
 
 type Props = { name: IconName; size?: number; color?: string; strokeWidth?: number };
 
@@ -24,9 +33,10 @@ type Props = { name: IconName; size?: number; color?: string; strokeWidth?: numb
 export function Icon({ name, size = 22, color = colors.text, strokeWidth = 1.8 }: Props) {
   const p = { stroke: color, strokeWidth, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no">
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       {name === 'back' && <Path d="M15 5l-7 7 7 7" {...p} />}
       {name === 'arrow' && <Path d="M5 12h13M13 6l6 6-6 6" {...p} />}
+      {name === 'up' && <Path d="M12 19V6M6 11l6-6 6 6" {...p} />}
       {name === 'check' && <Path d="M5 12.5l4.5 4.5L19 7.5" {...p} />}
       {name === 'lock' && (
         <>
@@ -58,7 +68,24 @@ export function Icon({ name, size = 22, color = colors.text, strokeWidth = 1.8 }
           <Path d="M12 11v5M12 8h.01" {...p} />
         </>
       )}
+      {name === 'alert' && (
+        <>
+          <Path d="M12 4l9 16H3L12 4z" {...p} />
+          <Path d="M12 10v4M12 17h.01" {...p} />
+        </>
+      )}
+      {name === 'question' && (
+        <>
+          <Circle cx={12} cy={12} r={9} {...p} />
+          <Path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01" {...p} />
+        </>
+      )}
       {name === 'edit' && <Path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" {...p} />}
+      {name === 'branch' && <Path d="M12 21v-8M12 13c0-3-5-4-6-8M12 13c0-3 5-4 6-8" {...p} />}
+      {name === 'infinity' && <Path d="M7 9a3 3 0 100 6c2.5 0 7.5-6 10-6a3 3 0 110 6c-2.5 0-7.5-6-10-6z" {...p} />}
+      {name === 'layers' && <Path d="M12 4l8 4-8 4-8-4 8-4zM4 12l8 4 8-4M4 16l8 4 8-4" {...p} />}
+      {name === 'bolt' && <Path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" {...p} />}
+      {name === 'swap' && <Path d="M7 7h11l-3-3M17 17H6l3 3" {...p} />}
     </Svg>
   );
 }

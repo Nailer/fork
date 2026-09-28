@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ForkMark } from '../components/ForkMark';
 import { ForkTree } from '../components/ForkTree';
 import { Text } from '../components/Text';
-import { Button, LevelMeter, PathBadge, TextLink } from '../components/ui';
+import { Backdrop, Button, LevelMeter, PathBadge, TextLink } from '../components/ui';
 import { useProgress } from '../hooks/useProgress';
 import { track } from '../services/analytics';
 import { useForkStore } from '../store/useForkStore';
@@ -111,6 +111,7 @@ export default function Onboarding() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <Backdrop tint={pathColor(page)} />
       <View style={[styles.column, { width }]}>
         <View style={styles.top}>
           <ForkMark size={28} />

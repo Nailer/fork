@@ -72,12 +72,13 @@ type Options = {
   retries?: number;
 };
 
-const RETRYABLE: AnalysisErrorKind[] = ['invalid_output', 'server', 'timeout'];
+// Timeouts are not retried: a second full-length attempt would double the wait.
+const RETRYABLE: AnalysisErrorKind[] = ['invalid_output', 'server'];
 
 async function requestOnce(
   input: DecisionInput,
   depth: AnalysisDepth,
-  { signal, timeoutMs = 90_000, fetchImpl = fetch, endpoint = { url: config.aiUrl, key: config.aiKey } }: Options,
+  { signal, timeoutMs = 125_000, fetchImpl = fetch, endpoint = { url: config.aiUrl, key: config.aiKey } }: Options,
 ): Promise<DecisionAnalysis> {
   const { url, key } = endpoint;
   if (!url) throw new AnalysisError('not_configured');
@@ -121,7 +122,10 @@ async function requestOnce(
   if (!response.ok) {
     const code = (payload as { error?: string } | null)?.error;
     if (response.status === 429) throw new AnalysisError('rate_limited');
-    if (code === 'not_configured' || response.status === 404) throw new AnalysisError('not_configured');
+    // 504 from our function, 546 from the Supabase gateway when a worker hits its limit.
+    if (code === 'timeout' || response.status === 504 || response.status === 546) throw new AnalysisError('timeout');
+    // 401/403 come from the Supabase gateway when the public key is missing or wrong.
+    if (code === 'not_configured' || [401, 403, 404].includes(response.status)) throw new AnalysisError('not_configured');
     if (code === 'refused') throw new AnalysisError('refused');
     if (response.status === 400) throw new AnalysisError('bad_request');
     if (code === 'invalid_output') throw new AnalysisError('invalid_output');

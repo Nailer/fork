@@ -50,7 +50,8 @@ const config: ExpoConfig = {
     ],
     'expo-font',
   ],
-  experiments: { typedRoutes: false },
+  // EXPO_BASE_URL lets the web build live under a sub-path (e.g. GitHub Pages /fork).
+  experiments: { typedRoutes: false, ...(process.env.EXPO_BASE_URL ? { baseUrl: process.env.EXPO_BASE_URL } : {}) },
   extra: {
     eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
   },

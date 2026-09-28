@@ -41,21 +41,30 @@ function getClient() {
   if (client) return client;
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return null;
-  client = new Anthropic({ apiKey, timeout: 110_000, maxRetries: 1 });
+  // No SDK-level retries: the handler below owns the time budget.
+  client = new Anthropic({ apiKey, maxRetries: 0 });
   return client;
 }
 
-async function generate(anthropic: Anthropic, userPrompt: string) {
-  const response = await anthropic.beta.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    thinking: { type: 'adaptive' },
-    output_config: { effort: 'medium', format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+// Supabase stops edge functions at ~150s wall clock. Everything must finish well before.
+const BUDGET_MS = 118_000;
+const MIN_RETRY_MS = 55_000;
+const EFFORT = (Deno.env.get('FORK_EFFORT') ?? 'low') as 'low' | 'medium' | 'high';
+
+async function generate(anthropic: Anthropic, userPrompt: string, timeoutMs: number) {
+  const response = await anthropic.beta.messages.create(
+    {
+      model: MODEL,
+      max_tokens: 12000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      thinking: { type: 'adaptive' },
+      output_config: { effort: EFFORT, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userPrompt }],
+    },
+    { timeout: timeoutMs },
+  );
   if (response.stop_reason === 'refusal') return { refusal: true as const };
   const text = response.content
     .flatMap((block) => (block.type === 'text' ? [block.text] : []))
@@ -85,10 +94,14 @@ Deno.serve(async (req) => {
   if (!parsed.ok) return json(400, { error: 'bad_request', message: parsed.error });
 
   const userPrompt = buildUserPrompt(parsed.value);
-  // One retry if the model's output does not pass validation.
+  const started = Date.now();
+  // One retry if the output fails validation or the call errors — but only if
+  // there is enough time left to finish before the platform limit.
   for (let attempt = 0; attempt < 2; attempt++) {
+    const remaining = BUDGET_MS - (Date.now() - started);
+    if (attempt > 0 && remaining < MIN_RETRY_MS) break;
     try {
-      const result = await generate(anthropic, userPrompt);
+      const result = await generate(anthropic, userPrompt, remaining);
       if (result.refusal) {
         return json(422, {
           error: 'refused',
@@ -106,6 +119,10 @@ Deno.serve(async (req) => {
         console.error('model auth failed');
         return json(503, { error: 'not_configured', message: 'The AI service is not configured correctly.' });
       }
+      if (error instanceof Anthropic.APIConnectionTimeoutError) {
+        console.error('model timeout', { attempt, ms: Date.now() - started });
+        return json(504, { error: 'timeout', message: 'The AI service took too long. Try again.' });
+      }
       if (error instanceof Anthropic.APIError) {
         console.error('model api error', error.status);
       } else {
@@ -113,6 +130,9 @@ Deno.serve(async (req) => {
       }
       if (attempt === 1) return json(502, { error: 'upstream', message: 'The AI service had a problem. Try again.' });
     }
+  }
+  if (Date.now() - started >= BUDGET_MS - MIN_RETRY_MS) {
+    return json(504, { error: 'timeout', message: 'The AI service took too long. Try again.' });
   }
   return json(502, { error: 'invalid_output', message: 'Fork couldn’t build clear paths this time. Try again.' });
 });

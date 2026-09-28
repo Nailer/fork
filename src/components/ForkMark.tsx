@@ -1,5 +1,6 @@
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { decorative } from '../theme/a11y';
 import { colors, pathColors } from '../theme/tokens';
 
 type Props = {
@@ -9,7 +10,7 @@ type Props = {
   left?: string;
   right?: string;
   stem?: string;
-  /** Highlights one branch (used in history to show the chosen path). */
+  /** Highlights one branch (used in the journal to show the chosen path). */
   highlight?: 'left' | 'right' | null;
 };
 
@@ -30,11 +31,12 @@ export function ForkMark({
   const stemT = Math.min(1, progress / 0.45);
   const branchT = Math.max(0, Math.min(1, (progress - 0.35) / 0.65));
   const dim = (side: 'left' | 'right') => (highlight && highlight !== side ? 0.28 : 1);
+  const dash = (t: number) => ({ strokeDasharray: `${LEN} ${LEN}`, strokeDashoffset: LEN * (1 - t) });
   return (
-    <Svg width={size} height={size} viewBox="0 0 64 64" accessibilityElementsHidden importantForAccessibility="no">
-      <Path d={STEM} stroke={stem} strokeWidth={6} strokeLinecap="round" fill="none" strokeDasharray={`${LEN} ${LEN}`} strokeDashoffset={LEN * (1 - stemT)} />
-      <Path d={LEFT} stroke={left} strokeWidth={6} strokeLinecap="round" fill="none" opacity={dim('left')} strokeDasharray={`${LEN} ${LEN}`} strokeDashoffset={LEN * (1 - branchT)} />
-      <Path d={RIGHT} stroke={right} strokeWidth={6} strokeLinecap="round" fill="none" opacity={dim('right')} strokeDasharray={`${LEN} ${LEN}`} strokeDashoffset={LEN * (1 - branchT)} />
+    <Svg width={size} height={size} viewBox="0 0 64 64" {...decorative}>
+      <Path d={STEM} stroke={stem} strokeWidth={6} strokeLinecap="round" fill="none" {...dash(stemT)} />
+      <Path d={LEFT} stroke={left} strokeWidth={6} strokeLinecap="round" fill="none" opacity={dim('left')} {...dash(branchT)} />
+      <Path d={RIGHT} stroke={right} strokeWidth={6} strokeLinecap="round" fill="none" opacity={dim('right')} {...dash(branchT)} />
       {branchT >= 1 ? (
         <>
           <Circle cx={16} cy={10} r={4.5} fill={left} opacity={dim('left')} />
