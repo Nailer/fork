@@ -51,26 +51,48 @@ const BUDGET_MS = 118_000;
 const MIN_RETRY_MS = 55_000;
 const EFFORT = (Deno.env.get('FORK_EFFORT') ?? 'low') as 'low' | 'medium' | 'high';
 
-async function generate(anthropic: Anthropic, userPrompt: string, timeoutMs: number) {
-  const response = await anthropic.beta.messages.create(
-    {
-      model: MODEL,
-      max_tokens: 12000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      thinking: { type: 'adaptive' },
-      output_config: { effort: EFFORT, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    },
-    { timeout: timeoutMs },
-  );
+type Mode = 'structured' | 'plain';
+
+/**
+ * 'structured' uses structured outputs + server-side refusal fallbacks.
+ * 'plain' is a conservative fallback (no betas, no output format) used if the API
+ * rejects the structured request; the shared parser recovers the JSON either way.
+ */
+async function generate(anthropic: Anthropic, userPrompt: string, timeoutMs: number, mode: Mode) {
+  const response =
+    mode === 'structured'
+      ? await anthropic.beta.messages.create(
+          {
+            model: MODEL,
+            max_tokens: 12000,
+            betas: ['server-side-fallback-2026-07-01'],
+            fallbacks: 'default',
+            thinking: { type: 'adaptive' },
+            output_config: { effort: EFFORT, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
+            system: SYSTEM_PROMPT,
+            messages: [{ role: 'user', content: userPrompt }],
+          },
+          { timeout: timeoutMs },
+        )
+      : await anthropic.messages.create(
+          {
+            model: MODEL,
+            max_tokens: 12000,
+            output_config: { effort: EFFORT },
+            system: `${SYSTEM_PROMPT}\n\nRespond with only one JSON object (no prose, no code fences) that matches this JSON schema:\n${JSON.stringify(OUTPUT_SCHEMA)}`,
+            messages: [{ role: 'user', content: userPrompt }],
+          },
+          { timeout: timeoutMs },
+        );
   if (response.stop_reason === 'refusal') return { refusal: true as const };
   const text = response.content
     .flatMap((block) => (block.type === 'text' ? [block.text] : []))
     .join('');
   return { refusal: false as const, text, truncated: response.stop_reason === 'max_tokens' };
 }
+
+/** Anthropic error messages describe the request problem; they don't echo user text. */
+const errorText = (error: unknown) => (error instanceof Error ? error.message.slice(0, 300) : 'unknown');
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -97,11 +119,12 @@ Deno.serve(async (req) => {
   const started = Date.now();
   // One retry if the output fails validation or the call errors — but only if
   // there is enough time left to finish before the platform limit.
+  let mode: Mode = 'structured';
   for (let attempt = 0; attempt < 2; attempt++) {
     const remaining = BUDGET_MS - (Date.now() - started);
     if (attempt > 0 && remaining < MIN_RETRY_MS) break;
     try {
-      const result = await generate(anthropic, userPrompt, remaining);
+      const result = await generate(anthropic, userPrompt, remaining, mode);
       if (result.refusal) {
         return json(422, {
           error: 'refused',
@@ -123,10 +146,17 @@ Deno.serve(async (req) => {
         console.error('model timeout', { attempt, ms: Date.now() - started });
         return json(504, { error: 'timeout', message: 'The AI service took too long. Try again.' });
       }
-      if (error instanceof Anthropic.APIError) {
-        console.error('model api error', error.status);
+      if (error instanceof Anthropic.BadRequestError) {
+        const message = errorText(error);
+        console.error('model rejected request', { attempt, mode, message });
+        if (/credit balance|billing|purchase credits/i.test(message)) {
+          return json(503, { error: 'billing', message: 'The AI service is out of credit.' });
+        }
+        mode = 'plain';
+      } else if (error instanceof Anthropic.APIError) {
+        console.error('model api error', error.status, errorText(error));
       } else {
-        console.error('unexpected error', error instanceof Error ? error.name : 'unknown');
+        console.error('unexpected error', errorText(error));
       }
       if (attempt === 1) return json(502, { error: 'upstream', message: 'The AI service had a problem. Try again.' });
     }

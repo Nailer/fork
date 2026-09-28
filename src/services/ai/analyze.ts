@@ -6,6 +6,7 @@ import { config } from '../config';
 
 export type AnalysisErrorKind =
   | 'not_configured'
+  | 'unavailable'
   | 'offline'
   | 'timeout'
   | 'rate_limited'
@@ -29,6 +30,10 @@ export const ERROR_COPY: Record<AnalysisErrorKind, { title: string; body: string
   not_configured: {
     title: 'Live analysis isn’t set up',
     body: 'This build isn’t connected to Fork’s AI service yet. You can still explore the sample decision.',
+  },
+  unavailable: {
+    title: 'Fork’s AI is unavailable right now',
+    body: 'The analysis service can’t take requests at the moment. You can still explore the sample decision.',
   },
   offline: {
     title: 'You’re offline',
@@ -125,6 +130,7 @@ async function requestOnce(
     // 504 from our function, 546 from the Supabase gateway when a worker hits its limit.
     if (code === 'timeout' || response.status === 504 || response.status === 546) throw new AnalysisError('timeout');
     // 401/403 come from the Supabase gateway when the public key is missing or wrong.
+    if (code === 'billing') throw new AnalysisError('unavailable');
     if (code === 'not_configured' || [401, 403, 404].includes(response.status)) throw new AnalysisError('not_configured');
     if (code === 'refused') throw new AnalysisError('refused');
     if (response.status === 400) throw new AnalysisError('bad_request');

@@ -103,7 +103,7 @@ export default function Analyzing() {
 
   if (phase.kind === 'error') {
     const copy = ERROR_COPY[phase.error];
-    const retryable = !['not_configured', 'refused', 'bad_request'].includes(phase.error);
+    const retryable = !['not_configured', 'unavailable', 'refused', 'bad_request'].includes(phase.error);
     return (
       <Screen scroll={false} edges={['top', 'bottom']} contentStyle={styles.center}>
         <FadeIn style={styles.errorWrap}>
@@ -127,7 +127,7 @@ export default function Analyzing() {
                 }}
               />
             ) : null}
-            {phase.error === 'not_configured' ? (
+            {phase.error === 'not_configured' || phase.error === 'unavailable' ? (
               <Button
                 label="Explore the sample decision"
                 onPress={() => {
