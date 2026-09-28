@@ -31,6 +31,8 @@ jobs:
         env:
           EXPO_BASE_URL: /fork
           EXPO_NO_TELEMETRY: 1
+          EXPO_PUBLIC_FORK_API_URL: https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision
+          EXPO_PUBLIC_FORK_API_KEY: ${{ secrets.EXPO_PUBLIC_FORK_API_KEY }}
         run: |
           npx expo export --platform web
           # Single-page app: serve index.html for deep links, and skip Jekyll.
