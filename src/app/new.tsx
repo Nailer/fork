@@ -30,7 +30,15 @@ export default function NewDecision() {
   const draft = usePending((s) => s.draft);
   const setDraft = usePending((s) => s.setDraft);
   const net = useNetInfo();
-  const offline = net.isConnected === false || net.isInternetReachable === false;
+  // NetInfo's web reachability probe can target the site origin. On GitHub
+  // project pages that means probing https://<user>.github.io/, which may 404
+  // even while the browser is online. The browser's native online flag is the
+  // correct signal on web; retain NetInfo's stronger reachability check on
+  // native platforms.
+  const offline =
+    Platform.OS === 'web'
+      ? typeof navigator !== 'undefined' && navigator.onLine === false
+      : net.isConnected === false || net.isInternetReachable === false;
   const [showMore, setShowMore] = useState(Boolean(draft.priorities || draft.budget || draft.timeHorizon));
   const [focused, setFocused] = useState(false);
 
