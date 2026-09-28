@@ -1,89 +1,45 @@
-# Fork — final release checklist
+# Fork — what’s left before submitting (Next Gen)
 
-Everything that could be done without your accounts is done. These are the remaining steps that need **your** login, keys or verification, in order of priority. Each one says exactly where to go and what to paste.
+Deadline: **September 30, 2026, 11:45 PM PDT**. No App Store or Play Store release is needed for Next Gen: a public open-source repo plus a demo video is enough.
 
-Legend: ⏱ time needed · 🔑 needs your account
+## Already done
+- App redesigned, typechecked, linted, 52 tests passing; every screen checked visually at phone size.
+- Live AI backend (Supabase Edge Function `analyze-decision`) deployed with clear error handling.
+- RevenueCat Test Store key and public AI endpoint built in, so `npm install && npm run web` works with no `.env`.
+- Public repo with MIT license, README, screenshots, and Devpost copy (`DEVPOST.md`).
+- A GitHub Actions workflow that tests the app and publishes the web build to GitHub Pages.
 
----
+## 1. Make “Build my paths” work (5 min)
+Run the app (`npm run web`), type a decision and press **Build my paths**.
+- **It works:** great, move on.
+- **You see “Fork’s AI is unavailable right now”:** your Anthropic account needs credit. Go to console.anthropic.com → **Billing** and add $5–10, then try again.
+- **Any other error:** tell Claude “check the logs”. The function now records Anthropic’s exact error reason.
 
-## 1. Turn on live AI (⏱ 5 min, 🔑 Anthropic + Supabase)
+## 2. Check RevenueCat (5 min)
+The dashboard needs: product `fork_pro_monthly` (Test Store) → entitlement `fork_pro` → offering marked **Current** with a **Monthly** package.
+In the app: Home → **Fork Pro** card. You should see your monthly price. Tap **Continue with Fork Pro**, complete the Test Store purchase, and a **PRO** badge appears.
 
-The `analyze-decision` edge function is **already deployed** to your Supabase project **“Testing”** (`gwruqdpbugqjrkyfvipa`). It answers `not_configured` until it has a model key.
-
-1. Get an API key at <https://console.anthropic.com> → **API keys** (add a few dollars of credit).
-2. Open <https://supabase.com/dashboard/project/gwruqdpbugqjrkyfvipa/functions/secrets>.
-3. Add a secret: name `ANTHROPIC_API_KEY`, value `sk-ant-…`. Save.
-4. Test it from your own terminal:
-   ```bash
-   curl -X POST https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision \
-     -H "Authorization: Bearer <anon key from .env / eas.json>" -H "Content-Type: application/json" \
-     -d '{"description":"Should I buy a new laptop now or wait a year?"}'
-   ```
-   You should get `{"analysis": {...}}` back within about 30–60s.
-
-## 2. Turn on RevenueCat (⏱ 10 min, 🔑 RevenueCat)
-
-1. Sign up or sign in at <https://app.revenuecat.com> and create a project called **Fork**.
-2. **Apps & providers → Test Store** (it’s added automatically for new projects).
-3. **Product catalog → Products → + New** in the Test Store: identifier `fork_pro_monthly`, subscription, 1 month, price e.g. $4.99.
-4. **Entitlements → + New**: identifier **`fork_pro`**, then attach `fork_pro_monthly`.
-5. **Offerings → + New**: identifier `default`, mark it **Current**, add a package of type **Monthly** containing `fork_pro_monthly`.
-6. **Project settings → API keys:** copy the **Test Store** public key (`test_…`).
-7. In the repo, add to `.env`:
-   ```
-   EXPO_PUBLIC_REVENUECAT_TEST_KEY=test_...
-   ```
-   and add the same line to `eas.json` → `build.base.env` (it’s a public key).
-8. Run `npm run web`, open Settings. It should say *Billing: RevenueCat Test Store*. Open the paywall and tap **Start Fork Pro**. RevenueCat’s Test Store purchase sheet appears. Complete it and Pro unlocks (sub-branches on the fork, extra comparison dimensions, no limits).
-
-## 3. Re-record the demo with live AI and a real Test Store purchase (⏱ 5 min)
-
+## 3. Record the demo video (under 2 minutes)
+Follow `docs/DEMO_SCRIPT.md`. Easiest option: record Chrome in phone view with your voice.
+Automated option (captions, cuts out the AI wait):
 ```bash
 npm run build:web
-node scripts/serve-dist.mjs &                         # serves on :8081
-npm i --no-save playwright && npx playwright install chromium   # once
-LIVE=1 node scripts/record-demo.mjs                   # needs ffmpeg on PATH
+node scripts/serve-dist.mjs            # keep this terminal open
+# in a second terminal:
+npm i --no-save playwright && npx playwright install chromium
+LIVE=1 node scripts/record-demo.mjs    # needs ffmpeg installed; writes docs/demo/fork-demo.mp4
 ```
-This overwrites `docs/demo/fork-demo.mp4`. For a voiced version, record your screen while following `docs/DEMO_SCRIPT.md`.
+(Windows PowerShell: `$env:LIVE="1"; node scripts/record-demo.mjs`)
 
-## 4. Upload the video (⏱ 5 min, 🔑 YouTube)
+## 4. Take one paywall screenshot
+With RevenueCat working, open the paywall and screenshot it. Upload it with the others on Devpost.
 
-Upload `docs/demo/fork-demo.mp4` to YouTube (Unlisted is fine). Title: *Fork — explore the paths behind difficult decisions (RevenueCat Shipaton 2026)*. Copy the link.
+## 5. Upload the video to YouTube
+Visibility **Unlisted** or **Public**, not Private.
 
-## 5. Submit on Devpost (⏱ 15 min, 🔑 Devpost with your student email)
+## 6. Submit on Devpost
+Use your **student email** account. Paste from `DEVPOST.md`, fill in the **[YOU]** items, add the repo link, the YouTube link and the screenshots, select **Next Gen**, then press **Submit**. Check that the project page says **Submitted**, not *Draft*.
 
-1. Make sure your Devpost profile uses your **student email** and you meet the Next Gen eligibility rules. Don’t add non-student teammates to the official team if you’re entering Next Gen.
-2. Go to the RevenueCat Shipaton 2026 page → **Enter a submission / Create project**.
-3. Paste the fields from [`DEVPOST.md`](DEVPOST.md): name, tagline, description, “Built with”.
-4. Links: repo `https://github.com/Nailer/fork` and your YouTube URL.
-5. Upload the screenshots listed in `DEVPOST.md`.
-6. In the categories and awards questions, select **Next Gen** and **RevenueCat Design Award**, and mention them in the description too (already included).
-7. **Save**, preview, then press **Submit**. Check that the project page says *Submitted*, not *Draft*.
-
-## 6. (Optional) Native builds and stores (🔑 Expo, Apple, Google)
-
-The Next Gen track doesn’t require a store release. If you want installable builds:
-
-```bash
-npx eas-cli@latest login
-npx eas-cli@latest init                 # links the project, sets EAS_PROJECT_ID
-npx eas-cli@latest build --profile preview --platform android    # installable APK
-npx eas-cli@latest build --profile development --platform ios    # needs an Apple account
-```
-For store releases: set `APP_BUNDLE_ID` if you want a different id (default `io.github.nailer.fork`), add the App Store / Play apps in RevenueCat with real products attached to `fork_pro`, set `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY`, then:
-```bash
-npx eas-cli@latest build --profile production --platform ios
-npx eas-cli@latest submit --platform ios
-```
-
-## Status at hand-off
-
-| Item | Status |
-|---|---|
-| App (iOS/Android/web code) | ✅ Built, typechecked, linted, 52 tests passing |
-| Web build (`npm run build:web`) | ✅ Exports cleanly, full flow walked in Chromium with no console errors |
-| AI proxy | ✅ Deployed to Supabase; ⏳ waiting for `ANTHROPIC_API_KEY` |
-| RevenueCat | ✅ Integrated; ⏳ waiting for a `test_` key and dashboard products |
-| Demo video | ✅ `docs/demo/fork-demo.mp4` (sample decision); ⏳ re-record with live AI and Pro |
-| Screenshots, README, license, Devpost copy | ✅ |
-| Native store builds | ⏳ Optional; need your Expo, Apple and Google accounts |
+## Optional
+- **Live web link for judges:** GitHub repo → Settings → Pages → Source: **GitHub Actions** (if the workflow couldn’t turn it on automatically). The link is then `https://nailer.github.io/fork/`.
+- **Native builds:** not needed for Next Gen. See the EAS commands in the README.
