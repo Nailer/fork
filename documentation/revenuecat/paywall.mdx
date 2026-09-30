@@ -1,0 +1,80 @@
+---
+title: "Paywall"
+description: "The Fork Pro screen: real prices, honest copy, every purchase state, and store-compliant disclosures."
+icon: "gem"
+---
+
+Route: `/paywall?reason=<limit|save|depth|compare|upgrade>` (`src/app/paywall.tsx`), presented as a **modal** that slides up from the bottom.
+
+## Layout
+
+| Part | Content |
+|---|---|
+| Close (top right) | Always visible. Goes back, or to Home if there’s no history. |
+| Hero | A gold Fork mark, **FORK PRO**, *Explore more possibilities.*, then the reason line |
+| Comparison table | Only features that exist (see below) |
+| Plan | **Monthly**, *Billed monthly · cancel anytime*, and the price (a spinner while loading, *Unavailable* if there’s no package) |
+| Test-mode note | *RevenueCat Test Store · fork_pro_monthly · no real money is charged* (Test mode only) |
+| Notice | A banner for success, pending or failure |
+| Footer | **Continue with Fork Pro** (gold), the renewal disclosure, **Not now**, **Restore purchases** |
+
+### Reason lines
+
+| `reason` | Line |
+|---|---|
+| `limit` | You’ve used this week’s 3 free explorations. |
+| `save` | Your free journal holds 5 decisions — and it’s full. |
+| `depth` | See where each path could split once you’re on it. |
+| `compare` | Compare paths on every dimension that matters. |
+| `upgrade` *(default)* | For the decisions that deserve more than a coin flip. |
+
+### Comparison table
+
+| | Free | Pro |
+|---|---|---|
+| Decision explorations | 3 / week | Unlimited |
+| Paths per decision | Up to 3 | Up to 4 |
+| Where each path could split | — | Included |
+| Comparison dimensions | 4 | All 8 |
+| Decision journal | 5 decisions | Unlimited |
+
+The rows are built from the constants in `limits.ts`, so they can’t drift from the real limits.
+
+## States
+
+| State | Footer |
+|---|---|
+| Already Pro | **You’re on Fork Pro** (secondary) |
+| Billing `unconfigured` | Disabled **Continue with Fork Pro** + *Purchases aren’t configured in this build.* |
+| Ready but no package | Disabled button + *Fork Pro couldn’t load. Check your connection and reopen this screen.* |
+| Loading | Button disabled, spinner in the plan row |
+| Ready | Enabled button + *“$4.99 per month. Renews automatically until cancelled. Cancel anytime in your App Store account settings at least 24 hours before renewal.”* (the store name adapts: App Store, Google Play or *store* on the web) |
+
+### Purchase results
+
+| Outcome | Notice | Then |
+|---|---|---|
+| success | **Welcome to Fork Pro**: Everything is unlocked. (gold) | Success haptic, closes after 1.2 s |
+| pending | **Purchase pending**: Pro unlocks as soon as the store confirms it. | Stays open |
+| failed | **Purchase didn’t complete** + the friendly message | Stays open |
+| cancelled | *(nothing)* | Stays open |
+
+### Restore results
+
+| Outcome | Notice |
+|---|---|
+| restored | **Fork Pro restored** (then closes after 1.2 s) |
+| nothing_to_restore | **No active subscription found**: There’s nothing to restore for this account. |
+| failed | **Restore failed** + message |
+
+## Store-review friendly by design
+
+- A visible close button, and **Not now**.
+- **Restore purchases** on the paywall and in Settings.
+- The price comes from the store via RevenueCat (`priceString`), and the period is stated.
+- An auto-renewal disclosure sits next to the purchase button.
+- No fake discounts, countdown timers or pre-selected trials.
+- Only features that exist are listed.
+- A **Manage subscription** link in Settings (RevenueCat `managementURL`).
+
+<Tip>Take the paywall screenshot for store listings or Devpost on a device where RevenueCat is reachable, so it shows the real price.</Tip>

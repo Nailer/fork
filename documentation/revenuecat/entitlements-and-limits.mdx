@@ -1,0 +1,49 @@
+---
+title: "Entitlements and limits"
+description: "How the fork_pro entitlement becomes concrete limits, and where each limit is enforced in the code."
+icon: "gauge"
+---
+
+`isPro` from the [SubscriptionProvider](/revenuecat/subscription-provider) is the only input. Every gate is a pure function in `src/domain/limits.ts` or `dimensions.ts`.
+
+## Gates
+
+| Gate | Function | Enforced in | On failure |
+|---|---|---|---|
+| Weekly explorations | `canExplore(timestamps, isPro)` | `startExploration()`, the New decision screen | Paywall `limit` |
+| Analysis depth | `depthFor(isPro)` → `'deep'` / `'standard'` | `startExploration()` | — |
+| Paths shown | `maxPathsFor(depth)` → 4 / 3 | `analyzeDecision()` | Extra paths dropped |
+| Sub-branches shown | `depth === 'deep'` (client) and `isPro` (UI) | `analyzeDecision()`, fork screen, path screen | Locked teaser → paywall `depth` |
+| Comparison dimensions | `FREE_DIMENSIONS` vs `available` | Compare screen | Paywall `compare` |
+| Journal size | `canSave(savedCount, isPro, alreadySaved)` | Summary screen | Paywall `save` |
+
+```ts
+export function remainingExplorations(timestamps: number[], isPro: boolean, now = Date.now()) {
+  if (isPro) return Infinity;
+  return Math.max(0, FREE_WEEKLY_EXPLORATIONS - recentExplorations(timestamps, now).length);
+}
+
+export function canSave(savedCount: number, isPro: boolean, alreadySaved: boolean) {
+  return isPro || alreadySaved || savedCount < FREE_SAVED_DECISIONS;
+}
+
+export const depthFor = (isPro: boolean): AnalysisDepth => (isPro ? 'deep' : 'standard');
+export const maxPathsFor = (depth: AnalysisDepth) => (depth === 'deep' ? PRO_MAX_PATHS : FREE_MAX_PATHS);
+```
+
+## What happens when Pro lapses
+
+- New explorations go back to `standard`, 3 per week.
+- **Existing kept decisions stay**, even beyond 5. You just can’t add more until you’re under the limit or re-subscribe.
+- Deep decisions you already have keep their sub-branches in storage, but the UI shows them locked (because `isPro` is false).
+- Pro comparison dimensions become locked chips. Saved selections are filtered down to the allowed set.
+
+## Security note
+
+These gates run on the device. That’s fine for a local-only app, but a modified client could request `depth: "deep"` directly. To harden it:
+
+1. Pass the RevenueCat app user ID to the edge function.
+2. In the function, call the RevenueCat REST API (`GET /v1/subscribers/{app_user_id}`) with a **secret** key stored as a function secret.
+3. Allow `depth: "deep"` only if `fork_pro` is active, and enforce the weekly limit server-side if needed.
+
+This is on the [roadmap](/resources/roadmap).

@@ -1,0 +1,76 @@
+---
+title: "RevenueCat setup"
+description: "Configure a RevenueCat project for Fork: Test Store, product, entitlement, offering and API keys."
+icon: "list-checks"
+---
+
+This takes about **5 minutes** for the Test Store. Store setup (App Store and Google Play) is covered in [Store builds](/revenuecat/store-builds).
+
+<Info>
+You can skip this entirely for local development. Fork ships a default Test Store key (`test_hpOvIzAjDWcgumcXqMtHjYBrjpG`) that points at the project owner’s RevenueCat project. Set up your own project when you want your own dashboard, prices or store products.
+</Info>
+
+## Test Store (development, web, Expo Go)
+
+<Steps>
+  <Step title="Create a project">
+    In the [RevenueCat dashboard](https://app.revenuecat.com), create a new project (e.g. **Fork**).
+  </Step>
+  <Step title="Add the Test Store">
+    Open **Apps & providers** and add the **Test Store**. It lets you make simulated purchases with no store account.
+  </Step>
+  <Step title="Create the product">
+    In the Test Store, create a product:
+    - **Identifier:** `fork_pro_monthly`
+    - **Type:** subscription, **duration:** monthly
+    - **Price:** whatever you want the paywall to show (e.g. $4.99)
+  </Step>
+  <Step title="Create the entitlement">
+    Create an entitlement with identifier **`fork_pro`** and attach `fork_pro_monthly` to it.
+    <Warning>The identifier must match `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT` (default `fork_pro`) exactly, including case.</Warning>
+  </Step>
+  <Step title="Create the offering">
+    Create an offering (e.g. `default`), mark it **Current**, and add a **Monthly** package that contains `fork_pro_monthly`.
+    <Tip>Fork reads `offerings.current.monthly`. If there’s no Monthly package it falls back to the first available package, but using Monthly keeps the paywall copy (“/ month”) accurate.</Tip>
+  </Step>
+  <Step title="Copy the public key">
+    **Project settings → API keys**: copy the Test Store public SDK key (it starts with `test_`).
+  </Step>
+  <Step title="Put it in the app">
+    ```bash .env
+    EXPO_PUBLIC_REVENUECAT_TEST_KEY=test_xxxxxxxxxxxxxxxxxxxx
+    EXPO_PUBLIC_REVENUECAT_ENTITLEMENT=fork_pro
+    ```
+    Restart Metro: `npm start -- --clear`.
+  </Step>
+</Steps>
+
+## Verify
+
+1. `npm run web` → **Home → Fork Pro**.
+2. The plan row shows your price (e.g. **$4.99 / month**), and underneath: *RevenueCat Test Store · fork_pro_monthly · no real money is charged*.
+3. Tap **Continue with Fork Pro** and complete the Test Store purchase.
+4. You should see *Welcome to Fork Pro. Everything is unlocked.*, the paywall closes, and a **PRO** badge appears next to the wordmark.
+5. **Settings** shows *Fork Pro · ACTIVE* and *Billing: RevenueCat Test Store (development)*.
+6. In the RevenueCat dashboard, the customer appears with an active `fork_pro` entitlement.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Plan row says *Unavailable*, footer says *Fork Pro couldn’t load* | No current offering, or it has no packages | Mark an offering **Current** and add a package |
+| Paywall button disabled, *Purchases aren’t configured in this build* | No key resolved (mode `unconfigured`) | Set `EXPO_PUBLIC_REVENUECAT_TEST_KEY` (or keep the default) |
+| Purchase succeeds but **PRO** doesn’t appear | The product isn’t attached to the entitlement, or the entitlement id doesn’t match | Attach the product to `fork_pro`, and check `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT` |
+| *You already own Fork Pro. Try “Restore purchases”.* | `PRODUCT_ALREADY_PURCHASED_ERROR` | Tap **Restore purchases** |
+| Store key used on the web | Web always uses the Test key | Expected. `appl_`/`goog_` keys only apply to native builds. |
+
+## Keys reference
+
+| Env var | Prefix | Platform | Required |
+|---|---|---|---|
+| `EXPO_PUBLIC_REVENUECAT_TEST_KEY` | `test_` | Web, Expo Go, dev builds, and the native fallback | Defaulted in code |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | `appl_` | iOS native builds | For App Store releases |
+| `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | `goog_` | Android native builds | For Play releases |
+| `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT` | — | All | Defaults to `fork_pro` |
+
+All four are **public** SDK keys and are safe to ship in the bundle. RevenueCat **secret** API keys (`sk_…`) must never go in the app.

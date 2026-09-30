@@ -1,0 +1,63 @@
+---
+title: "Store builds"
+description: "Selling Fork Pro on the App Store and Google Play with the same fork_pro entitlement."
+icon: "store"
+---
+
+The Test Store is enough for development, demos and the hackathon. To sell for real, add the stores to the **same** RevenueCat project and attach their products to the **same** entitlement and offering. No code changes are needed.
+
+## App Store (iOS)
+
+<Steps>
+  <Step title="App Store Connect">
+    Create the app with the bundle ID `io.github.nailer.fork` (or your own, via `APP_BUNDLE_ID`). Under **Subscriptions**, create a subscription group and an auto-renewable subscription, e.g. `fork_pro_monthly`, 1 month. Fill in the pricing, localisation and review screenshot (use the paywall).
+  </Step>
+  <Step title="Connect to RevenueCat">
+    In RevenueCat **Apps & providers**, add an **App Store** app with the same bundle ID. Upload the **In-App Purchase key** (`.p8`) and the App Store Connect API key as RevenueCat asks.
+  </Step>
+  <Step title="Import and attach">
+    Import the product into RevenueCat, attach it to the **`fork_pro`** entitlement, and add it to the **Monthly** package of the **Current** offering (next to the Test Store product).
+  </Step>
+  <Step title="Public key">
+    Copy the App Store public SDK key (`appl_…`) into `EXPO_PUBLIC_REVENUECAT_IOS_KEY`. For EAS builds, add it as an EAS environment variable (see [Native builds](/deploy/native-eas)).
+  </Step>
+  <Step title="Sandbox test">
+    Build with `npx eas-cli@latest build --profile development --platform ios`, install it, sign in with a sandbox tester, and buy. **Settings → Billing** should say *App Store / Google Play (production)*.
+  </Step>
+</Steps>
+
+## Google Play (Android)
+
+<Steps>
+  <Step title="Play Console">
+    Create the app with package `io.github.nailer.fork`. Upload a first build (an internal testing track is fine) so billing products can be created. Under **Monetize → Subscriptions**, create `fork_pro_monthly` with a monthly base plan.
+  </Step>
+  <Step title="Service account">
+    Create a Google Cloud service account with Play Console access, and upload its JSON credentials in RevenueCat when adding the **Play Store** app.
+  </Step>
+  <Step title="Import and attach">
+    Import the product, attach it to `fork_pro`, and add it to the Monthly package of the Current offering.
+  </Step>
+  <Step title="Public key">
+    Copy the Play public SDK key (`goog_…`) into `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY`.
+  </Step>
+  <Step title="License test">
+    Add your Google account as a license tester, install from the internal track, and buy.
+  </Step>
+</Steps>
+
+`app.config.ts` doesn’t need a billing permission: *“RevenueCat adds BILLING itself; nothing else is needed.”* It blocks `RECORD_AUDIO`, which no feature uses.
+
+## Checklist before release
+
+- [ ] Products approved or active in both stores
+- [ ] Both products attached to `fork_pro`
+- [ ] The Current offering has a Monthly package containing all three (Test, App Store, Play)
+- [ ] `appl_` and `goog_` keys set for the production EAS environment
+- [ ] Paywall screenshot and privacy policy URL in the store listings
+- [ ] Restore tested on a second device with the same store account
+- [ ] RevenueCat webhooks or integrations configured if you want revenue events elsewhere
+
+## Pricing experiments
+
+Because the paywall reads the **Current offering** at runtime, you can change price points, add an annual package, or run RevenueCat **Experiments** without a new app release. The paywall currently shows only the Monthly package. Showing annual needs a small UI change (see [Extending Fork](/contributing/extending-fork)).

@@ -1,0 +1,80 @@
+---
+title: "SubscriptionProvider"
+description: "The React context that exposes isPro, the monthly package, purchase and restore to the whole app."
+icon: "radio-tower"
+---
+
+**File:** `src/services/revenuecat/SubscriptionProvider.tsx`
+**Mounted in:** `src/app/_layout.tsx`, wrapping the whole `Stack`.
+
+## Context value
+
+```ts
+type SubscriptionContextValue = {
+  status: 'loading' | 'ready' | 'unavailable';
+  mode: 'test' | 'production' | 'unconfigured';
+  isPro: boolean;
+  monthly: PurchasesPackage | null;
+  managementURL: string | null;         // store subscription management page
+  purchase: () => Promise<PurchaseOutcome>;
+  restore: () => Promise<RestoreOutcome>;
+  refresh: () => Promise<void>;
+};
+
+export function useSubscription(): SubscriptionContextValue; // throws outside the provider
+```
+
+## Lifecycle
+
+<Steps>
+  <Step title="Configure synchronously">
+    On first render, `useState(() => mode !== 'unconfigured' && configurePurchases())`. So the first frame already knows whether billing exists: `status` starts as `loading` or `unavailable`.
+  </Step>
+  <Step title="Start once">
+    An effect (guarded by a ref) subscribes to customer-info updates and loads customer info and the current offering in parallel, then sets `status: 'ready'`.
+  </Step>
+  <Step title="Refresh on foreground">
+    An `AppState` listener calls `refresh()` whenever the app becomes `active`. That picks up purchases made elsewhere, renewals and cancellations.
+  </Step>
+  <Step title="Cache the entitlement">
+    Every time customer info arrives, `setProCache(hasProEntitlement(info))` stores the latest answer in the persisted store.
+  </Step>
+</Steps>
+
+## The isPro rule
+
+```ts
+// Until RevenueCat answers, trust the last known entitlement so Pro users aren't
+// locked out when offline. Once RevenueCat answers, it is the only source of truth.
+const isPro = info ? hasProEntitlement(info) : mode !== 'unconfigured' && proCache;
+```
+
+| Situation | isPro |
+|---|---|
+| RevenueCat answered, entitlement active | `true` |
+| RevenueCat answered, no entitlement | `false` (even if the cache said true) |
+| No answer yet or offline, cache true | `true` |
+| Billing unconfigured | always `false` |
+
+## purchase()
+
+1. Use the loaded `monthly` package. If there isn’t one yet, fetch the current offering (`monthly ?? availablePackages[0]`).
+2. No package → `{ status: 'failed', message: 'Fork Pro isn’t available right now.' }`.
+3. Fire `purchase_started`, call `purchasePackage`.
+4. On success, apply the new customer info (so `isPro` flips immediately) and fire `purchase_completed`.
+
+## restore()
+
+This calls the wrapper, applies the returned customer info on anything other than `failed`, and returns the outcome for the screen to display.
+
+## Using it in a screen
+
+```tsx
+import { useSubscription } from '../services/revenuecat/SubscriptionProvider';
+
+export default function Screen() {
+  const { isPro, status, monthly, purchase } = useSubscription();
+  const price = monthly?.product.priceString;   // e.g. "$4.99"
+  // …
+}
+```

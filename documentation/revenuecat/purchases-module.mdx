@@ -1,0 +1,92 @@
+---
+title: "Purchases module"
+description: "src/services/revenuecat/purchases.ts: the thin, centralised wrapper around the RevenueCat SDK."
+icon: "package"
+---
+
+Screens never import `react-native-purchases` directly. They go through this module (via the [SubscriptionProvider](/revenuecat/subscription-provider)), so every call has the same error handling.
+
+## API
+
+```ts
+export const ENTITLEMENT_ID: string;                       // config.entitlementId (default 'fork_pro')
+
+export function isBillingAvailable(): boolean;             // billingMode() !== 'unconfigured'
+export function configurePurchases(): boolean;            // idempotent
+export function hasProEntitlement(info?: CustomerInfo | null, entitlementId?: string): boolean;
+export function getCustomerInfo(): Promise<CustomerInfo | null>;
+export function getCurrentOffering(): Promise<PurchasesOffering | null>;
+export function purchase(pkg: PurchasesPackage): Promise<PurchaseOutcome>;
+export function restore(): Promise<RestoreOutcome>;
+export function onCustomerInfo(listener: (info: CustomerInfo) => void): () => void;
+export function describePurchaseError(error: unknown): PurchaseOutcome;
+```
+
+## configurePurchases()
+
+```ts
+export function configurePurchases(): boolean {
+  if (configured) return true;
+  const apiKey = config.revenueCatKey;
+  if (!apiKey) return false;
+  try {
+    if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.WARN);
+    Purchases.configure({ apiKey });
+    configured = true;
+  } catch {
+    configured = false;
+  }
+  return configured;
+}
+```
+
+- Safe to call more than once.
+- It doesn’t log in a user. RevenueCat creates an **anonymous app user ID** per install. Fork has no accounts, so restore relies on the store account (or, on the Test Store, the same install).
+- Every other function returns `null` or a `failed` outcome when not configured, so no call ever throws into a screen.
+
+## hasProEntitlement()
+
+```ts
+Boolean(info?.entitlements?.active?.[entitlementId]?.isActive)
+```
+
+It’s tested for: active → true, inactive → false, a different entitlement → false, `null`/`undefined` → false.
+
+## Purchase outcomes
+
+```ts
+type PurchaseOutcome =
+  | { status: 'success'; customerInfo: CustomerInfo }
+  | { status: 'cancelled' }
+  | { status: 'pending' }
+  | { status: 'failed'; message: string };
+```
+
+`describePurchaseError()` maps SDK errors to friendly outcomes:
+
+| SDK error | Outcome | Message |
+|---|---|---|
+| `userCancelled` or `PURCHASE_CANCELLED_ERROR` | `cancelled` | *(silent: cancelling isn’t an error)* |
+| `PAYMENT_PENDING_ERROR` | `pending` | Paywall: *Purchase pending. Pro unlocks as soon as the store confirms it.* |
+| `NETWORK_ERROR`, `OFFLINE_CONNECTION_ERROR` | `failed` | You appear to be offline. Check your connection and try again. |
+| `PRODUCT_ALREADY_PURCHASED_ERROR` | `failed` | You already own Fork Pro. Try “Restore purchases”. |
+| `PURCHASE_NOT_ALLOWED_ERROR` | `failed` | Purchases aren’t allowed on this device. |
+| anything else | `failed` | The purchase didn’t go through. You haven’t been charged. |
+| not configured | `failed` | Purchases aren’t available in this build. |
+
+## Restore outcomes
+
+```ts
+type RestoreOutcome =
+  | { status: 'restored'; customerInfo: CustomerInfo }          // fork_pro is active after restore
+  | { status: 'nothing_to_restore'; customerInfo: CustomerInfo } // restore worked, no entitlement
+  | { status: 'failed'; message: string };                      // “Couldn’t restore purchases…”
+```
+
+## Customer-info listener
+
+`onCustomerInfo(listener)` wraps `addCustomerInfoUpdateListener` and returns an unsubscribe function. The provider uses it so that renewals, expirations and refunds (pushed by RevenueCat) update `isPro` without a restart.
+
+## Testing
+
+`jest.setup.js` mocks `react-native-purchases` with jest functions and the error codes used above, so `entitlement.test.ts` can test entitlement and error mapping without native modules.
