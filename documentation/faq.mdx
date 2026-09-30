@@ -1,0 +1,79 @@
+---
+title: "FAQ"
+description: "Common questions about Fork, its AI, privacy, pricing and development."
+icon: "circle-help"
+---
+
+## Using Fork
+
+<AccordionGroup>
+  <Accordion title="Will Fork tell me what to do?">
+    No, and that’s deliberate. The model is instructed never to recommend or rank a path. The comparison sorts rows by how much the paths *differ*, not by which is *better*. The only “choose” button in the app belongs to you. See [Why Fork](/principles/why-fork).
+  </Accordion>
+  <Accordion title="Why are there no percentages or scores?">
+    Fork has no data to back a “62% chance of success”, so it doesn’t invent one. Every reading is qualitative (low / moderate / high), comes with a plain-language note, and rests on assumptions the path spells out. See [Epistemic honesty](/principles/epistemic-honesty).
+  </Accordion>
+  <Accordion title="How many paths will I get?">
+    Free explorations build **2–3 paths**. Fork Pro explorations are built at *deep* depth: **3–4 paths**, each with **two sub-branches** showing where it could split next.
+  </Accordion>
+  <Accordion title="Does the sample decision count against my allowance?">
+    No. The sample (“New laptop now, or one more year?”) is bundled with the app, is always labelled **Sample**, works offline and never uses an exploration.
+  </Accordion>
+  <Accordion title="When does my weekly allowance reset?">
+    It’s a **rolling 7-day window**, not a calendar week. Each exploration frees up exactly 7 days after you ran it. When you run out, the New decision screen tells you which weekday your next free exploration unlocks.
+  </Accordion>
+  <Accordion title="Can I change my choice later?">
+    Yes. Reopen the decision from the journal, tap **Your fork**, choose again and tap **Update decision**. Saving an existing decision again never counts against the Free journal limit.
+  </Accordion>
+  <Accordion title="What does “Explore this decision again” do?">
+    It copies your original words (and any context) into the composer so you can run a **fresh** exploration. The saved decision stays exactly as it was.
+  </Accordion>
+</AccordionGroup>
+
+## Privacy
+
+<AccordionGroup>
+  <Accordion title="Where are my decisions stored?">
+    Only on your device, in AsyncStorage under the key `fork:v1` (localStorage on the web). There is no account and no cloud sync. **Settings → Delete all my data** wipes everything.
+  </Accordion>
+  <Accordion title="What gets sent to a server?">
+    When you tap **Build my paths**, your description, any optional context and the depth are sent to the `analyze-decision` edge function, which forwards them to the configured model (Gemini or Claude). The function doesn’t store them and doesn’t log decision text. Nothing else leaves the device except RevenueCat’s own purchase traffic.
+  </Accordion>
+  <Accordion title="Does Fork use analytics?">
+    No analytics SDK is bundled. The `track()` hook only prints events to the console in development builds, and events carry no decision text. See [Analytics events](/architecture/analytics-events).
+  </Accordion>
+</AccordionGroup>
+
+## Fork Pro and billing
+
+<AccordionGroup>
+  <Accordion title="What does Fork Pro include?">
+    Unlimited explorations, up to 4 paths per decision, sub-branches (“where each path could split”), all 8 comparison dimensions, and an unlimited journal. See [Free vs Pro](/product/free-vs-pro).
+  </Accordion>
+  <Accordion title="Is the paywall price real?">
+    Yes. It’s `monthly.product.priceString` from the RevenueCat current offering. On the Test Store, the paywall labels itself *“RevenueCat Test Store · no real money is charged”*.
+  </Accordion>
+  <Accordion title="I already paid. How do I get Pro back?">
+    Use **Restore purchases** on the paywall or in Settings. If nothing is found you’ll see *“No active subscription found.”*
+  </Accordion>
+  <Accordion title="Will I lose Pro when I’m offline?">
+    No. The last known entitlement is cached (`proCache`) and trusted until RevenueCat answers again.
+  </Accordion>
+</AccordionGroup>
+
+## Development
+
+<AccordionGroup>
+  <Accordion title="Do I need a .env to run it?">
+    No. The project’s public Supabase endpoint, anon key and RevenueCat Test Store key are the defaults in `src/services/config.ts`. Add a `.env` only to point at your own backend or RevenueCat project.
+  </Accordion>
+  <Accordion title="Which AI model does it use?">
+    Whichever the edge function is configured for. If `GEMINI_API_KEY` is set (or `FORK_AI_PROVIDER=gemini`), it uses **Gemini** (`gemini-2.5-flash` by default). Otherwise it uses **Claude** (`claude-opus-5` by default). See [Providers](/ai/providers).
+  </Accordion>
+  <Accordion title="Why can’t I buy with real money in Expo Go?">
+    Expo Go can only run RevenueCat in its preview mode, so it needs the Test Store key. Real App Store / Google Play purchases need a development or store build made with EAS. See [Native builds](/deploy/native-eas).
+  </Accordion>
+  <Accordion title="I changed the schema. What else do I need to do?">
+    Run `npm run sync:edge` to copy `src/domain/schema.ts` and `parse.ts` into the edge function, update `OUTPUT_SCHEMA` in `prompt.ts` if fields changed, then redeploy the function. A test fails if the two drift apart. See [Schema](/ai/schema).
+  </Accordion>
+</AccordionGroup>

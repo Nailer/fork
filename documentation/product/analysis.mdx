@@ -1,0 +1,70 @@
+---
+title: "Analysis"
+description: "What happens between tapping Build my paths and seeing your fork, including every error state."
+icon: "loader"
+---
+
+Route: `/analyzing` (`src/app/analyzing.tsx`)
+
+<img className="rounded-xl" src="/images/screens/03-analyzing.png" alt="Analysing screen" width="320" />
+
+## While Fork works
+
+Fork doesn’t show a spinner. It shows the product’s own visual language: a three-branch fork that **grows and regrows** every 2.6 seconds while three stage labels advance on a 5-second timer.
+
+| Stage | Label |
+|---|---|
+| 1 | Understanding your decision… |
+| 2 | Finding the variables that matter… |
+| 3 | Building possible paths… |
+| Done | **Your fork is ready.** |
+
+The stages are honest. They advance on a timer and **never claim a step has finished**. Only *“Your fork is ready.”* is tied to the real result. Your description is quoted under the headline, and a hint gives expectations:
+
+- Free: *“This usually takes under a minute.”*
+- Pro (deep): *“Deeper exploration takes a little longer.”*
+
+**Cancel** aborts the request (via `AbortController`) and goes back. It doesn’t use an exploration.
+
+## When the result arrives
+
+1. The result is validated again on the device, and paths are capped (3 for standard, 4 for deep). Sub-branches are removed from standard results.
+2. A success haptic plays (native only).
+3. A **draft** decision is created in the store with `source: 'ai'`.
+4. The exploration timestamp is recorded, which uses **one** of your weekly allowance.
+5. `decision_generated` fires with the number of paths and the depth.
+6. After 0.9 s, the draft text is cleared and Fork opens `/decision/<id>`.
+
+<Info>
+Only **successful** explorations count against the Free allowance. Errors, timeouts and cancellations never use one.
+</Info>
+
+## Error states
+
+Every failure maps to one of these screens. Raw errors never reach the UI.
+
+| Kind | Title | Body | Actions |
+|---|---|---|---|
+| `offline` | You’re offline | Building new paths needs a connection. Your saved decisions are still available. | Try again · Edit description |
+| `timeout` | That took too long | Fork didn’t hear back in time. Your description is still here — try again. | Try again · Edit description |
+| `rate_limited` | Fork is busy | Too many requests right now. Give it a minute and try again. | Try again · Edit description |
+| `invalid_output` | Fork couldn’t build clear paths | The analysis came back incomplete. Trying again usually works. | Try again · Edit description |
+| `server` | Something went wrong | Fork’s AI service had a problem. Try again in a moment. | Try again · Edit description |
+| `not_configured` | Live analysis isn’t set up | This build isn’t connected to Fork’s AI service yet. You can still explore the sample decision. | Explore the sample decision · Edit description |
+| `unavailable` | Fork’s AI is unavailable right now | The analysis service can’t take requests at the moment. You can still explore the sample decision. | Explore the sample decision · Edit description |
+| `refused` | Fork can’t explore this one | Try describing a different decision. | Edit description |
+| `bad_request` | Add a little more detail | Describe the decision in a sentence or two so Fork has something to work with. | Edit description |
+
+**Try again** is offered only for errors that can resolve on their own. It restarts the stages and makes a fresh request. **Edit description** goes back with your text intact.
+
+For how HTTP statuses map to these kinds, see [Error handling](/ai/errors). For what to do as an operator, see [Troubleshooting](/deploy/troubleshooting).
+
+## Timing budget
+
+| Layer | Limit |
+|---|---|
+| Client request timeout | **125 s** per attempt |
+| Client retries | 1 retry, only for `invalid_output` and `server`. Timeouts are **not** retried, because that would double the wait. |
+| Edge function time budget | **105 s** total across its own two attempts |
+| Edge function second attempt | Only if at least **45 s** of budget remain |
+| Supabase gateway | Returns `546` if a worker exceeds its wall-clock limit. The client treats this as a timeout. |

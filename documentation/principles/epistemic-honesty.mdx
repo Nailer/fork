@@ -1,0 +1,57 @@
+---
+title: "Epistemic honesty"
+description: "How Fork avoids overconfidence: qualitative levels, explicit assumptions, named unknowns and calm cautions."
+icon: "scale"
+---
+
+An AI that sounds certain about your future is misleading you. Fork is built to be clear about what it doesn’t know.
+
+## Qualitative levels, not fake precision
+
+Every rating is one of three levels, `low`, `moderate` or `high`, plus a short note that grounds it in your situation (max 160 characters). There are no percentages, star ratings or composite scores anywhere in the app.
+
+The system prompt says these are *“qualitative judgments grounded in the stated assumptions, not measurements.”*
+
+## Every path shows its reasoning
+
+Each path carries fields whose only job is to make the reasoning visible:
+
+| Field | Shown as | Purpose |
+|---|---|---|
+| `assumptions` | *This path assumes…* | What has to be true for this path to play out as described |
+| `uncertaintyLevel` + `uncertainty` | *How uncertain is this path?* + *Uncertain* | How shaky the path is, and why |
+| `whatWouldChange` | *What would change this path* | The signals that should make you rethink |
+| `importantVariables` | *Hinges on* | The factors the path depends on |
+| `questionsToConsider` | *Questions worth answering* | What you could find out to decide better |
+
+## Unknowns are named
+
+At the decision level, `missingInformation` (up to 4 items) appears as **What Fork doesn’t know**. The prompt tells the model: *“If a number matters and you do not have it, name it as missing information instead.”*
+
+If the input isn’t really a decision (a greeting, say), the model still returns the structure but frames it around the most reasonable decision it can infer, and lists what’s unclear as missing information.
+
+## Cautions for high-stakes domains
+
+If a decision is **primarily** medical, legal, financial (investments, debt or taxes beyond everyday spending) or involves physical danger, the model sets:
+
+```json
+{ "caution": { "domain": "medical" | "legal" | "financial" | "safety" | "other", "message": "…" } }
+```
+
+The fork screen shows a gold **Worth talking to a professional** banner with that message, and the paths stay exploratory rather than prescriptive. For ordinary decisions `caution` is `null`.
+
+## Language
+
+The model describes outcomes as possibilities: *could*, *is likely to*, *this path assumes*. The interface does the same, labelling each path *One possible path* and saying *Paths are possibilities, not predictions*.
+
+## Honest loading
+
+The analysis screen’s stage labels advance on a timer and **never claim a step is done**. Only *“Your fork is ready.”* reflects a real result.
+
+## Honest monetization
+
+- The paywall shows the **real** price from RevenueCat, or *Unavailable*. It never shows a placeholder price.
+- It lists only features that exist.
+- There are no fake discounts or countdowns.
+- In Test Store mode, it says so on screen.
+- With no billing configured, Fork never simulates a purchase.

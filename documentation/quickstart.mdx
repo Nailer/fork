@@ -1,0 +1,123 @@
+---
+title: "Quickstart"
+description: "Run Fork locally on the web, on a phone with Expo Go, or as a development build."
+icon: "zap"
+---
+
+Fork runs out of the box. The public AI endpoint and a RevenueCat **Test Store** key are built into [`src/services/config.ts`](/api-reference/modules/config), so a fresh clone needs **no `.env` file**.
+
+## Prerequisites
+
+| Tool | Version | Why |
+|---|---|---|
+| Node.js | 20 or newer (CI uses 22) | Runs Metro, Jest and the scripts |
+| npm | comes with Node | The repo ships a `package-lock.json`; use `npm ci` for exact installs |
+| Expo Go *(optional)* | latest, from the App Store or Google Play | Runs Fork on a real phone without building it |
+| Supabase CLI *(optional)* | latest | Only needed to deploy your own AI proxy |
+| EAS CLI *(optional)* | `>= 16.0.0` | Only needed for native store builds |
+
+## Run it
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Nailer/fork.git
+    cd fork
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+    <Tip>Use `npm ci` in CI or when you want the exact lockfile versions.</Tip>
+  </Step>
+  <Step title="Start the app">
+    <CodeGroup>
+    ```bash Web (easiest)
+    npm run web
+    ```
+    ```bash Phone with Expo Go
+    npm start
+    # then scan the QR code with Expo Go (Android) or the Camera app (iOS)
+    ```
+    ```bash iOS simulator
+    npm run ios
+    ```
+    ```bash Android emulator
+    npm run android
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Walk the flow">
+    1. Go through the three onboarding pages, or tap **Skip**.
+    2. On Home, tap **See an example** to open the bundled sample decision. It works offline and doesn’t use your allowance.
+    3. Or type a real decision into **What’s on your mind?** and tap **Build my paths**. This calls the live AI proxy.
+  </Step>
+</Steps>
+
+<Warning>
+**Live AI needs the backend to be configured.** If **Build my paths** shows *“Live analysis isn’t set up”* or *“Fork’s AI is unavailable right now”*, the Supabase function has no working model key. See [Deploy the AI proxy](/deploy/supabase-edge-function). The sample decision works either way.
+</Warning>
+
+## Viewing it at phone size on the web
+
+Fork is designed for a phone. In the browser:
+
+1. Open DevTools (<kbd>F12</kbd>).
+2. Toggle the device toolbar (<kbd>Ctrl/Cmd</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd>).
+3. Pick **iPhone 14 Pro** (393 × 852). All screenshots in these docs were taken at this size.
+
+Content is capped at `MAX_CONTENT_WIDTH = 520` px, so on a wide desktop window the app stays centred in a column.
+
+## Using your own backend and RevenueCat project
+
+```bash
+cp .env.example .env
+```
+
+Then fill in the values. See [Environment variables](/deploy/environment-variables) for what each one does.
+
+```bash .env
+EXPO_PUBLIC_FORK_API_URL=https://<your-project-ref>.supabase.co/functions/v1/analyze-decision
+EXPO_PUBLIC_FORK_API_KEY=<supabase-anon-key>
+EXPO_PUBLIC_REVENUECAT_TEST_KEY=test_<...>
+EXPO_PUBLIC_REVENUECAT_IOS_KEY=appl_<...>
+EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=goog_<...>
+EXPO_PUBLIC_REVENUECAT_ENTITLEMENT=fork_pro
+```
+
+<Note>
+Anything prefixed `EXPO_PUBLIC_` is compiled into the app bundle and is visible to anyone. Only public keys belong there. Model API keys (`GEMINI_API_KEY`, `ANTHROPIC_API_KEY`) are **edge-function secrets** and never go in `.env`.
+</Note>
+
+Restart Metro after changing `.env` (`npm start -- --clear` clears the cache).
+
+## Check that everything is healthy
+
+```bash
+npm test            # 52 Jest tests across 7 suites
+npm run typecheck   # tsc --noEmit
+npm run lint        # expo lint (eslint-config-expo + React Compiler rules)
+npm run build:web   # expo export --platform web → dist/
+```
+
+All four ran cleanly on the current `main` when these docs were written.
+
+## Purchases in development
+
+| Where you run it | What RevenueCat does |
+|---|---|
+| Web, Expo Go, dev build with a `test_` key | **Test Store**: purchases are simulated, no money moves. The paywall says *“RevenueCat Test Store · no real money is charged”*. |
+| Native build with `appl_` / `goog_` keys | Real App Store / Google Play purchases. Needs a development or store build, not Expo Go. |
+| No key at all | Billing is **unconfigured**. The paywall disables the button and says *“Purchases aren’t configured in this build.”* Fork never fakes a purchase. |
+
+To try Fork Pro locally, open **Home → Fork Pro**, tap **Continue with Fork Pro** and finish the Test Store purchase. A **PRO** badge appears next to the wordmark. Details: [RevenueCat setup](/revenuecat/setup).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="workflow" href="/how-it-works" />
+  <Card title="Project structure" icon="folder-tree" href="/architecture/project-structure" />
+  <Card title="Deploy checklist" icon="list-checks" href="/deploy/checklist" />
+  <Card title="Troubleshooting" icon="life-buoy" href="/deploy/troubleshooting" />
+</CardGroup>

@@ -1,0 +1,94 @@
+---
+title: "Describe a decision"
+description: "Home and the New decision screen: where you tell Fork what you’re weighing."
+icon: "pencil-line"
+---
+
+You can start a decision from two places. **Home** is the fast path. **New decision** lets you add context.
+
+## Home
+
+Route: `/home` (`src/app/home.tsx`)
+
+<img className="rounded-xl" src="/images/screens/02-home.png" alt="Fork home screen" width="320" />
+
+From top to bottom:
+
+| Element | What it does |
+|---|---|
+| **Top bar** | The Fork mark and wordmark (plus a **PRO** badge if you’re subscribed), then **Decision journal** and **Settings** buttons. |
+| **Hero** | *“Don’t ask what to choose. Explore what each choice changes.”* |
+| **Composer** | *What’s on your mind?* A multi-line field (max 2,000 characters) with **Build my paths**. |
+| **Allowance indicator** | Free: three pips and *“N left this week”* (tapping it opens Fork Pro). Pro: ∞ *Unlimited*. |
+| **Add budget, priorities or timeframe** | Opens the New decision screen with your text carried over. |
+| **Example chips** | *Buy now or wait?*, *Take the offer?*, *Weekend plans*, *Move cities?*. Tapping one fills the composer. |
+| **See an example** | Opens the bundled [sample decision](/product/sample-decision). |
+| **Fork Pro card** | Free users only. Opens the paywall (`reason=upgrade`). |
+| **Recent decisions** | The three most recently updated kept decisions, plus **See all** when you have more than three. |
+
+### What “Build my paths” does
+
+The button is enabled once the description has at least **8 characters**. When pressed:
+
+1. If you’re **offline**, the AI isn’t configured, or you have **0 explorations left**, Fork opens the New decision screen instead, which explains the problem and offers the right next step.
+2. Otherwise it calls `startExploration(draft, isPro)`, which:
+   - trims every field and drops empty optional fields,
+   - checks the rolling weekly allowance again (and opens the paywall with `reason=limit` if needed),
+   - fires `decision_started` with `withContext: true|false`,
+   - stores the input and the depth (`deep` for Pro, `standard` for Free) in memory,
+   - navigates to `/analyzing`.
+
+<Info>
+The draft you type is kept in memory (`usePending.draft`), so switching between Home and New decision never loses text. It isn’t persisted to disk, so closing the app clears it.
+</Info>
+
+## New decision
+
+Route: `/new` (`src/app/new.tsx`)
+
+The full composer. Title: **“Tell Fork what’s happening.”** Subtitle: *“Describe the choice in your own words. A sentence or two is enough.”*
+
+### Optional context
+
+Tap **Add context** to reveal three fields, each capped at 240 characters:
+
+| Field | Placeholder | Sent as |
+|---|---|---|
+| What matters most | *e.g. Peace of mind, not wasting money* | `priorities` |
+| Budget | *e.g. Around $1,500* | `budget` |
+| Time horizon | *e.g. The next 12 months* | `timeHorizon` |
+
+The model receives these as separate lines (*“What matters most to them: …”*, *“Budget: …”*, *“Time horizon: …”*). See [Prompting](/ai/prompting).
+
+### Status banners
+
+| Banner | When | Effect |
+|---|---|---|
+| **You’re offline** | The browser reports `navigator.onLine === false` (web), or NetInfo reports no connection (native) | Button disabled. Saved decisions still work. |
+| **Live analysis isn’t set up in this build** | No AI URL is configured | Offers **Open the sample decision** |
+| **You’ve used this week’s free explorations** | Free user with 0 left | Shows the weekday your next free exploration unlocks. The button becomes **Unlock more explorations** (gold) and opens the paywall. |
+
+As you type, a hint appears under the field: *“A little more detail helps”* while you’re under 8 characters, and a `N/2000` counter once you pass 80% of the limit.
+
+A privacy line sits under the button: *“Sent securely to an AI model to build your paths. Fork doesn’t store it — saved decisions stay on this device.”*
+
+<Note>
+**Why the web uses `navigator.onLine`.** On GitHub Pages, NetInfo’s reachability probe can hit the account root (`https://nailer.github.io/`), which may return 404 even while you’re online. That used to show a false *“You’re offline”* banner. Web builds now rely on the browser’s own online flag. Native builds still use NetInfo’s stronger check.
+</Note>
+
+## Writing a good description
+
+<CardGroup cols={2}>
+  <Card title="Name the options you see" icon="list">
+    “Buy a new laptop now or keep my current one another year” gives Fork two anchors. It often adds a third, like “fix it up, then decide”.
+  </Card>
+  <Card title="Say what’s bothering you" icon="message-circle">
+    “The battery barely lasts two hours and it slows down in design tools” shapes the tradeoffs.
+  </Card>
+  <Card title="Add real constraints" icon="wallet">
+    A budget or deadline stops the model from guessing. Fork never invents prices.
+  </Card>
+  <Card title="Keep it to a few sentences" icon="text">
+    Every item in a path has to fit on a phone card. More words don’t mean better paths.
+  </Card>
+</CardGroup>

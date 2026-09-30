@@ -1,0 +1,47 @@
+---
+title: "Why Fork"
+description: "The product thesis: AI is most useful in a decision when it structures the question instead of answering it."
+icon: "compass"
+---
+
+## A map, not a verdict
+
+When you’re stuck on *buy now or wait* or *take the offer or stay*, a chatbot gives you a verdict wrapped in paragraphs. It decides **for** you, sounds more certain than it should, and leaves you with a wall of text.
+
+Fork does the opposite. It **structures** the decision so you can see your options clearly, then gets out of the way.
+
+> The most useful thing AI can do in a decision isn’t answering. It’s structuring the question so the person can answer it themselves.
+
+## Three design commitments
+
+<CardGroup cols={3}>
+  <Card title="Schema, not chat" icon="braces">
+    The model fills a strict schema that’s validated before anything renders. The UI is a tree you can tap, not a transcript.
+  </Card>
+  <Card title="Honesty is built in" icon="scale">
+    Every path shows its assumptions and uncertainty. There are no invented percentages, missing information is named, and high-stakes domains get a caution.
+  </Card>
+  <Card title="Agency by design" icon="hand">
+    The model is told never to recommend or rank. The comparison sorts by difference, not quality. The only *choose* button belongs to you.
+  </Card>
+</CardGroup>
+
+## How each commitment shows up in the code
+
+| Commitment | Where it lives |
+|---|---|
+| Never recommend or rank | The `SYSTEM_PROMPT` in `supabase/functions/analyze-decision/prompt.ts`: *“Never tell the person what they should do, and never rank the paths.”* |
+| Balanced paths | Prompt: *“with the same care for every path. No path should read as the obvious winner.”* |
+| Real alternatives | Prompt: *“different actions, timings or commitments — not the same idea reworded. Include a ‘wait / keep things as they are’ or ‘smaller step’ path…”* |
+| No invented facts | Prompt: *“Do not invent statistics, percentages, prices, or facts…”* and the `missingInformation` field |
+| No scoring | `buildComparison()` sorts by spread and has no total or winner (`src/domain/compare.ts`) |
+| Possibilities, not predictions | UI copy: *“One possible path”*, *“Paths are possibilities, not predictions.”* |
+| The user decides | Only `summary.tsx` records a choice, and *Still deciding* is a valid answer |
+| Remember why | The journal stores your note beside the choice |
+
+## What Fork is not
+
+- **Not a predictor.** It never claims to know what will happen.
+- **Not an advisor.** For medical, legal, financial or safety decisions it suggests a qualified professional.
+- **Not a chatbot.** There’s no conversation to steer. You get a structured map every time.
+- **Not a data product.** Your decisions stay on your device.

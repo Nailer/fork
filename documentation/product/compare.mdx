@@ -1,0 +1,67 @@
+---
+title: "Compare"
+description: "A side-by-side matrix across the dimensions you choose. No scores, no winner, and the biggest differences first."
+icon: "columns-3"
+---
+
+Route: `/decision/[id]/compare` (`src/app/decision/[id]/compare.tsx`)
+
+<img className="rounded-xl" src="/images/screens/08-compare.png" alt="The comparison matrix" width="320" />
+
+Title: **“Choose what matters to you.”** Subtitle: *“Qualitative readings of each path’s assumptions — no scores, no winner. The biggest differences rise to the top.”*
+
+## Choosing dimensions
+
+A row of chips lists every dimension that **at least one path** has a rating for, in canonical order:
+
+| Dimension | Free | Pro | Low reads as | Moderate reads as | High reads as |
+|---|:-:|:-:|---|---|---|
+| **Cost** | ✓ | ✓ | Low cost | Some cost | High cost |
+| **Time** | ✓ | ✓ | Little time | Some time | A lot of time |
+| **Flexibility** | ✓ | ✓ | Locks you in | Some room | Keeps options open |
+| **Risk** | ✓ | ✓ | Low risk | Some risk | Higher risk |
+| **Effort** | 🔒 | ✓ | Light lift | Some effort | Heavy lift |
+| **Potential upside** | 🔒 | ✓ | Modest upside | Some upside | Big upside |
+| **Short-term impact** | 🔒 | ✓ | Small change now | Noticeable now | Big change now |
+| **Long-term impact** | 🔒 | ✓ | Fades over time | Lasting effect | Shapes what comes next |
+
+- Tap a chip to toggle it. You can’t deselect the last one, so the matrix is never empty.
+- Tapping a **locked** chip (Free) opens the paywall with `reason=compare`.
+- Your selection is saved on the decision (`selectedDimensions`), so it’s still there when you come back.
+- New decisions start with the four free dimensions selected (or whichever of them the model rated).
+
+## Reading the matrix
+
+A legend maps each letter badge to its path title. Then there’s one row per selected dimension:
+
+- **Dimension name** and a tag:
+  - **Biggest difference** (with a spark ✦) on the top row, when the paths sit at opposite ends (low vs high),
+  - **Paths differ a lot** (spread 2), **Paths differ** (spread 1), or **Similar across paths** (spread 0).
+- **One cell per path**: a vertical **3-step bar** in the path’s colour (taller means more of this dimension), the letter, the level in words, and the model’s short note (up to 160 characters).
+- If a path wasn’t rated on a dimension, the cell says *“Not assessed for C”*.
+
+The section label reads *“N dimensions · taller bar = more”*.
+
+<Warning>
+“Taller” means **more of the dimension**, not **better**. High cost, high risk and high flexibility are all tall bars. That’s why every reading is also written out in words, so you can see which direction is good for you.
+</Warning>
+
+## How rows are ordered
+
+Fork calculates each row’s **spread**: the distance between the highest and lowest level across the paths, with `low = 1`, `moderate = 2`, `high = 3`.
+
+```ts
+spread = max(levels) − min(levels)   // 0, 1 or 2
+```
+
+Rows are sorted by spread, largest first. Ties keep the order you selected them in. The rows where paths genuinely differ come first, because *that’s where the decision lives*.
+
+Fork deliberately **does not total, weight or score** the paths. There is no winner column. See [Comparison logic](/api-reference/modules/compare) for the code.
+
+## Screen readers
+
+Each row is one accessible element, for example: *“Cost: path A High cost, path B Low cost, path C Some cost.”*
+
+## Footer
+
+**Choose a path** opens the [summary and choice screen](/product/choose-and-keep). Free users who can see locked dimensions also get the hint *“Effort, upside and short- and long-term impact are part of Fork Pro.”*

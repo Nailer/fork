@@ -1,0 +1,45 @@
+---
+title: "Accessibility"
+description: "How Fork supports screen readers, reduced motion, dynamic type, touch targets and colour-independent meaning."
+icon: "accessibility"
+---
+
+Accessibility is built into Fork’s components rather than added afterwards.
+
+## Meaning never relies on colour alone
+
+- Every path has a **letter** (A–D) as well as a colour, on badges, the tree, the matrix and the journal.
+- Every level meter has **words**, e.g. *Keeps options open* or *Higher risk*, not just a filled bar.
+- The comparison tags (*Biggest difference*, *Paths differ*) are text.
+- Banners pair a tone colour with an icon and a title.
+
+## Screen readers
+
+| Element | Role / label |
+|---|---|
+| Buttons, chips, path rows | `accessibilityRole="button"` with descriptive labels, e.g. *“Path B: Keep it for one more year. Explored.”* |
+| Choice list | `radiogroup` with `radio` items and `selected` state |
+| Comparison rows | One label per row that reads every path’s level |
+| Paywall table | One label per row: *“Paths per decision: Free Up to 3, Pro Up to 4”* |
+| Analysis headline | `accessibilityLiveRegion="polite"`, so stage changes are announced |
+| Headers | `accessibilityRole="header"` on screen titles |
+| Decorative SVG | Hidden from assistive tech: `aria-hidden` on web, and `accessibilityElementsHidden` / `importantForAccessibility="no-hide-descendants"` on native (`src/theme/a11y.ts`) |
+| Allowance pips | *“2 of 3 free explorations left this week. Opens Fork Pro.”* |
+
+## Reduced motion
+
+`useReducedMotion()` follows the OS **Reduce Motion** setting and reacts to changes live.
+
+- `useProgress()` jumps straight to `1`, so the tree, the mark and the onboarding art appear fully drawn.
+- `FadeIn` sets content visible immediately.
+- The selected-node **halo** doesn’t pulse. It shows as a static ring.
+
+## Touch targets and type
+
+- Icon buttons are **44 × 44 pt**. Primary buttons are at least **56 pt** tall, and the *Add context* toggle is 48 pt.
+- All text goes through the `Text` component, which follows the system font size up to a cap of `maxFontSizeMultiplier={1.6}`. Beyond 1.6× the text stops growing, so layouts can’t break at extreme sizes.
+- All text colours pass **WCAG AA** against the background and card colours (see [Design system](/architecture/design-system)).
+
+## Haptics
+
+Selection, impact and success haptics play on iOS and Android only (`expo-haptics`). They’re skipped on the web and fail silently where unsupported.

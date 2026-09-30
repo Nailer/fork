@@ -1,0 +1,87 @@
+---
+title: "The fork"
+description: "Your decision as an animated branching tree: select a branch, preview it, and see the situation at a glance."
+icon: "git-fork"
+---
+
+Route: `/decision/[id]` (`src/app/decision/[id]/index.tsx`)
+
+<CardGroup cols={2}>
+  <img className="rounded-xl" src="/images/screens/04-fork.png" alt="The fork tree" />
+  <img className="rounded-xl" src="/images/screens/05-fork-selected.png" alt="A branch selected with its preview card" />
+</CardGroup>
+
+## Header
+
+- **Back** returns to Home (dismissing the stack when possible).
+- A gold **Sample** chip appears for the bundled example decision.
+- The **decision title** is written by the model (max 90 characters), for example *“New laptop now, or one more year?”*.
+
+### Banners
+
+| Banner | When |
+|---|---|
+| **Worth talking to a professional** (gold) | The model set a `caution` because the decision is primarily medical, legal, financial or safety-related. The body is the model’s short, calm message. |
+| **You leaned toward Path B · …** (green) | The decision is already in your journal. It shows your note in quotes and an **Explore this decision again** link. |
+| **You were still deciding** | The decision is kept with *Still deciding* as the choice. |
+
+## The tree
+
+The signature visual is an SVG tree (`ForkTree`):
+
+- **Trunk**: your decision, growing from the top.
+- **Branches A–D**: one per path, each with its own colour and letter.
+
+| Path | Colour | Hex |
+|---|---|---|
+| A | Amber | `#F5B65C` |
+| B | Teal | `#5ED3C0` |
+| C | Iris | `#A99BFF` |
+| D | Coral | `#FF8A7A` |
+
+Colour is **never the only signal**. Every path is also labelled with its letter.
+
+The tree draws itself over 1.7 s: the trunk grows, branches extend in sequence, nodes bloom, then labels rise in. With **Reduce Motion** on, it appears fully drawn.
+
+### Selecting a branch
+
+Tap a node to select it:
+
+- the branch thickens and a **halo pulses** behind the node (native animation driver),
+- the other branches recede,
+- the screen background tints to that path’s colour,
+- a **preview card** slides in underneath.
+
+Tap the same node again to deselect it. With nothing selected, a hint reads: *“Tap a branch to preview it. Paths are possibilities, not predictions.”*
+
+### Preview card
+
+| Part | Content |
+|---|---|
+| Label | *Path B · Uncertainty low* |
+| Title | The path’s title |
+| Summary | Up to 3 lines |
+| Mini-meters | **Cost**, **Risk** and **Flexibility**, each with its plain-language level (e.g. *High cost*, *Keeps options open*) |
+| CTA | **Explore this path →** opens the [path detail](/product/path-detail) |
+
+### Sub-branches (“twigs”)
+
+For **Fork Pro** users, when the analysis was built at deep depth, each node sprouts two short **twigs** labelled with where that path could split next. Free users viewing a deep analysis (for example the sample) see a teaser instead: **See where each path could split next · PRO**, which opens the paywall with `reason=depth`.
+
+## Below the tree
+
+| Section | Source field | Notes |
+|---|---|---|
+| **The situation** | `analysis.summary` | One short paragraph framing the real question. |
+| **All N paths** | `analysis.scenarios` | One row per path: letter badge, title, first tradeoff, and an **Explored** tick once opened. |
+| **Factors that matter** | `analysis.variables` (1–6) | Numbered `01`, `02`… each with a name and why it matters. |
+| **What Fork doesn’t know** | `analysis.missingInformation` (0–4) | Hidden when empty. |
+
+## Footer
+
+- **Compare** opens the [comparison](/product/compare).
+- **Choose a path** (or **Your fork** if already kept) opens the [summary and choice screen](/product/choose-and-keep).
+
+## Drafts
+
+A new AI decision starts as an **unsaved draft**. Fork keeps every saved decision but only the **3 newest drafts**. Older drafts are pruned when a new decision is created. If you follow a link to a pruned draft, you’ll see *“This decision isn’t here anymore.”*

@@ -1,0 +1,240 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Fork",
+  "description": "Fork is an AI decision explorer for iOS, Android and web. Describe a hard choice and Fork maps it into 2–4 materially different paths you can explore, compare and choose between. Built with Expo, Supabase, Claude/Gemini and RevenueCat.",
+  "colors": {
+    "primary": "#7C6BF0",
+    "light": "#A99BFF",
+    "dark": "#5B4BD4"
+  },
+  "background": {
+    "color": {
+      "light": "#FBFAF7",
+      "dark": "#08090D"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Fraunces",
+      "weight": 600
+    },
+    "body": {
+      "family": "Inter"
+    }
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "favicon": "/logo/icon.png",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "/introduction"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Live web app",
+        "href": "https://nailer.github.io/fork/"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Nailer/fork"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "how-it-works",
+              "screen-tour",
+              "faq"
+            ]
+          },
+          {
+            "group": "Using Fork",
+            "pages": [
+              "product/onboarding",
+              "product/describe-a-decision",
+              "product/analysis",
+              "product/the-fork",
+              "product/path-detail",
+              "product/compare",
+              "product/choose-and-keep",
+              "product/decision-journal",
+              "product/sample-decision",
+              "product/settings",
+              "product/free-vs-pro",
+              "product/accessibility"
+            ]
+          },
+          {
+            "group": "Principles",
+            "pages": [
+              "principles/why-fork",
+              "principles/epistemic-honesty",
+              "principles/privacy-and-security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "icon": "layers",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "architecture/overview",
+              "architecture/tech-stack",
+              "architecture/project-structure",
+              "architecture/request-lifecycle"
+            ]
+          },
+          {
+            "group": "App",
+            "pages": [
+              "architecture/routing",
+              "architecture/state",
+              "architecture/domain-logic",
+              "architecture/design-system",
+              "architecture/fork-tree",
+              "architecture/analytics-events"
+            ]
+          },
+          {
+            "group": "AI layer",
+            "pages": [
+              "ai/overview",
+              "ai/edge-function",
+              "ai/providers",
+              "ai/prompting",
+              "ai/schema",
+              "ai/parsing-and-recovery",
+              "ai/client",
+              "ai/errors"
+            ]
+          },
+          {
+            "group": "RevenueCat & Fork Pro",
+            "pages": [
+              "revenuecat/overview",
+              "revenuecat/setup",
+              "revenuecat/purchases-module",
+              "revenuecat/subscription-provider",
+              "revenuecat/paywall",
+              "revenuecat/entitlements-and-limits",
+              "revenuecat/store-builds"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deploy & operate",
+        "icon": "rocket",
+        "groups": [
+          {
+            "group": "Configuration",
+            "pages": [
+              "deploy/environment-variables",
+              "deploy/app-config"
+            ]
+          },
+          {
+            "group": "Deploy",
+            "pages": [
+              "deploy/checklist",
+              "deploy/supabase-edge-function",
+              "deploy/web-github-pages",
+              "deploy/native-eas",
+              "deploy/documentation-site"
+            ]
+          },
+          {
+            "group": "Operate",
+            "pages": [
+              "deploy/monitoring-and-logs",
+              "deploy/troubleshooting"
+            ]
+          },
+          {
+            "group": "Contribute",
+            "pages": [
+              "contributing/development-workflow",
+              "contributing/testing",
+              "contributing/scripts",
+              "contributing/demo-recording",
+              "contributing/extending-fork"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "icon": "code",
+        "groups": [
+          {
+            "group": "HTTP API",
+            "pages": [
+              "api-reference/introduction",
+              "api-reference/analyze-decision"
+            ]
+          },
+          {
+            "group": "Data model",
+            "pages": [
+              "api-reference/decision-analysis",
+              "api-reference/scenario",
+              "api-reference/dimensions-and-levels",
+              "api-reference/decision-record"
+            ]
+          },
+          {
+            "group": "Modules",
+            "pages": [
+              "api-reference/modules/limits",
+              "api-reference/modules/compare",
+              "api-reference/modules/store",
+              "api-reference/modules/config"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "icon": "library",
+        "groups": [
+          {
+            "group": "Resources",
+            "pages": [
+              "resources/roadmap",
+              "resources/changelog",
+              "resources/glossary",
+              "resources/license"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Nailer/fork"
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
+  }
+}

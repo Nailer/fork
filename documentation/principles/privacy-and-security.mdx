@@ -1,0 +1,67 @@
+---
+title: "Privacy and security"
+description: "What data Fork stores, what leaves the device, where secrets live, and the security model of the AI proxy."
+icon: "shield-check"
+---
+
+## Data inventory
+
+| Data | Where it lives | Leaves the device? |
+|---|---|---|
+| Decisions, analyses, notes, choices | AsyncStorage key `fork:v1` (localStorage on the web) | **No** |
+| Exploration timestamps (for the weekly limit) | Same store | No |
+| Onboarding flag, cached Pro flag | Same store | No |
+| Draft text you’re typing | Memory only, never persisted | No |
+| Description + optional context + depth | Sent when you tap **Build my paths** | **Yes**, to the edge function, then to the model provider |
+| Purchase and entitlement data | RevenueCat SDK | Yes, to RevenueCat and the app store |
+
+## What the AI proxy does with your text
+
+- It validates the text and builds a prompt from it.
+- It forwards the prompt to **one** provider: Google Gemini or Anthropic Claude, depending on configuration.
+- It returns the analysis and **doesn’t store** anything. There’s no database table for decisions.
+- It **doesn’t log decision text**. Logs contain only the provider, attempt number, mode, validation reason and error messages (truncated to 500 characters).
+
+<Note>The model providers’ own data policies apply to requests they receive. Check the Gemini API and Anthropic API terms for retention details.</Note>
+
+## No tracking
+
+There’s no analytics or tracking SDK in the bundle. `track()` in `src/services/analytics.ts` only prints to the console when `__DEV__` is true, and events carry no decision text or personal data. See [Analytics events](/architecture/analytics-events).
+
+## Secrets model
+
+| Value | Public? | Where it goes |
+|---|---|---|
+| Supabase URL and **anon** key | Public by design | App bundle (`EXPO_PUBLIC_FORK_API_*`), defaulted in `config.ts` |
+| RevenueCat public SDK keys (`test_`, `appl_`, `goog_`) | Public by design | App bundle (`EXPO_PUBLIC_REVENUECAT_*`) |
+| `GEMINI_API_KEY`, `ANTHROPIC_API_KEY` | **Secret** | Supabase Edge Function secrets only |
+| Signing keys (`*.jks`, `*.p8`, `*.p12`, `*.mobileprovision`, `*.key`, `*.pem`) | **Secret** | Never in the repo (git-ignored) |
+| `.env` | Holds public values, but not committed | Git-ignored. `.env.example` is the template. |
+
+<Warning>
+**Never put a model key in an `EXPO_PUBLIC_` variable.** Anything with that prefix is compiled into the JavaScript bundle and readable by anyone who downloads the app or opens the website.
+</Warning>
+
+## Edge function protections
+
+| Protection | Detail |
+|---|---|
+| **JWT verification** | The function is deployed with `verify_jwt: true`. Requests need the project’s anon key as a Bearer token, or the Supabase gateway rejects them with 401. |
+| **Input validation** | Description 8–2,000 characters. Optional fields trimmed to 240. `depth` coerced to `standard` or `deep`. |
+| **Rate limiting** | 12 requests per 10 minutes per IP (from `x-forwarded-for`), in memory per function instance. Configurable with `FORK_RATE_LIMIT_PER_10_MIN`. |
+| **Output validation** | Every model response is parsed and validated with zod before it’s returned. |
+| **Time budget** | 105 s total, so a request never outlives the platform’s wall-clock limit. |
+| **Error hygiene** | Clients get stable error codes (`not_configured`, `billing`, `rate_limited`…) and friendly messages, never raw provider errors. |
+| **CORS** | `Access-Control-Allow-Origin: *`, methods `POST, OPTIONS`. This is fine because the function holds no user data. |
+
+### Known limitations
+
+- The rate limit is **per instance** and in memory. It stops accidental loops, not a determined attacker with many IPs.
+- The Free/Pro limits are enforced **client-side**. A modified client could request `depth: "deep"`. Server-side entitlement checks via the RevenueCat REST API are on the [roadmap](/resources/roadmap).
+- The anon key is public, so anyone can call the function within the rate limit. Put quota alerts on your model provider account.
+
+## Deleting data
+
+- **In the app:** Settings → **Delete all my data** resets the local store and returns to onboarding.
+- **Web:** clearing the site’s data for the domain has the same effect.
+- **Subscription:** managed by the App Store / Google Play (or RevenueCat’s Test Store). Deleting app data doesn’t cancel it.

@@ -1,0 +1,53 @@
+---
+title: "Sample decision"
+description: "A hand-written, clearly labelled example that shows the full product offline and without using an exploration."
+icon: "flask-conical"
+---
+
+Fork ships with one hand-written example decision (`src/domain/sample.ts`). It exists so anyone, including judges, reviewers and people without a connection, can walk the whole product without calling the AI or using their allowance.
+
+## Opening it
+
+- **Home → See an example** (*New laptop now, or one more year?*)
+- **New decision → Or explore the sample decision**
+- Any **Live analysis isn’t set up** or **Fork’s AI is unavailable** screen → **Explore the sample decision**
+
+Each time, `openSample()` creates a new decision with `source: 'sample'` and `depth: 'deep'`, fires `sample_opened` and opens it. It **never records an exploration**.
+
+## Honesty rules
+
+- The fork screen always shows a gold **Sample** chip.
+- It is never presented as a live AI result.
+- Because it’s built at deep depth, it includes sub-branches. Free users see those as a locked Pro teaser, and Pro users see them in full.
+
+## The content
+
+**Input**
+
+| Field | Value |
+|---|---|
+| Description | Should I buy a new laptop now or keep my current one for another year? It is four years old, the battery barely lasts two hours and it slows down when I run design tools, but it still works. |
+| What matters most | Getting real work done without friction, not wasting money |
+| Budget | About $1,500 if I buy |
+| Time horizon | Next 12 months |
+
+**Analysis**
+
+| | |
+|---|---|
+| Title | New laptop now, or one more year? |
+| Factors | Daily friction · Cash on hand · Upcoming workload · Repairability |
+| Path A | **Buy a new laptop now** (`buy-now`) |
+| Path B | **Keep it for one more year** (`keep-a-year`) |
+| Path C | **Fix it up, then decide** (`repair-and-wait`) |
+| Questions | How many hours a week does the slowdown really cost you? · Is $1,500 comfortable right now, or a stretch? · Is anything work-critical coming up in the next three months? |
+| Missing information | The exact model and whether it can be repaired · Whether your files are backed up today |
+| Caution | none |
+
+## Keeping the sample
+
+You can choose a path and keep the sample like any other decision. It counts toward the Free journal limit of 5 once kept.
+
+## Tests
+
+`parse.test.ts` checks that the sample passes the same `DecisionAnalysisSchema` as live results, so the sample can never drift out of shape.

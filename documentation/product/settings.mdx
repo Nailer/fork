@@ -1,0 +1,54 @@
+---
+title: "Settings"
+description: "Your plan, restoring purchases, managing the subscription, deleting your data and build diagnostics."
+icon: "settings"
+---
+
+Route: `/settings` (`src/app/settings.tsx`)
+
+## Plan
+
+| You are | Card shows | Actions |
+|---|---|---|
+| Free | **Fork Free**: *3 explorations a week, up to 5 kept decisions.* | **See Fork Pro** (opens the paywall with `reason=upgrade`) · **Restore purchases** |
+| Pro | **Fork Pro** `ACTIVE`: *Unlimited decisions, full history, deeper paths and comparisons.* | **Manage subscription** (opens RevenueCat’s `managementURL`, i.e. the store’s subscription page) · **Restore purchases** |
+
+**Restore purchases** is hidden when billing is unconfigured. It reports one of:
+
+- *Fork Pro restored.*
+- *No active subscription found.*
+- *Couldn’t restore purchases. Check your connection and try again.*
+
+## Your data
+
+> Your decisions (N kept) are stored only on this device. When you build new paths, your description is sent to Fork’s AI service to generate them and is not stored by Fork. Fork does not use analytics or tracking SDKs.
+
+**Delete all my data** asks for confirmation:
+
+> **Delete all data?** This removes every decision, note and usage history from this device. Your subscription is not affected.
+
+Confirming resets the store to its initial state (`onboarded: false`, no decisions, no exploration history, `proCache: false`) and opens onboarding. Your RevenueCat subscription is untouched. Restore it or let RevenueCat refresh it.
+
+<Warning>Deletion can’t be undone. There is no backup.</Warning>
+
+## About
+
+A short disclaimer:
+
+> Fork helps you explore decisions. It doesn’t predict outcomes or tell you what to choose, and it isn’t a substitute for professional medical, legal or financial advice.
+
+It’s followed by build diagnostics, which are useful when debugging a deployment:
+
+| Line | Values |
+|---|---|
+| Version | from `app.config.ts` (currently `1.0.0`) |
+| Billing | *RevenueCat Test Store (development)* · *App Store / Google Play (production)* · *Not configured in this build* |
+| AI service | *Connected* (an AI URL is configured) · *Not configured* |
+
+<Note>*AI service: Connected* only means a URL is configured. It doesn’t check whether the backend actually has a model key. To test that, build a real decision or see [Monitoring and logs](/deploy/monitoring-and-logs).</Note>
+
+**Replay introduction** shows onboarding again without deleting anything.
+
+## Development banner
+
+When no RevenueCat key is available (billing mode `unconfigured`), Settings shows: *“Development build. RevenueCat keys aren’t set, so purchases are disabled. See README → RevenueCat.”*

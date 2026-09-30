@@ -1,0 +1,64 @@
+---
+title: "Screen tour"
+description: "Every screen in Fork, with screenshots from the web build at iPhone 14 size."
+icon: "images"
+---
+
+These screenshots come from the web build at iPhone 14 Pro size, showing the clearly labelled **sample decision** (“New laptop now, or one more year?”).
+
+<CardGroup cols={2}>
+  <Card title="1 · Onboarding" href="/product/onboarding">
+    <img src="/images/screens/01-onboarding.png" alt="Onboarding: every choice creates a different path" />
+    Three pages that introduce paths, tradeoffs and agency. The fork draws itself.
+  </Card>
+  <Card title="2 · Home" href="/product/describe-a-decision">
+    <img src="/images/screens/02-home.png" alt="Home screen with composer and example chips" />
+    The composer, example prompts, the sample fork, the Fork Pro card and recent decisions.
+  </Card>
+  <Card title="3 · Analysing" href="/product/analysis">
+    <img src="/images/screens/03-analyzing.png" alt="Analysing screen with the growing fork" />
+    The fork keeps regrowing while honest stage labels advance.
+  </Card>
+  <Card title="4 · The fork" href="/product/the-fork">
+    <img src="/images/screens/04-fork.png" alt="The fork tree with paths A to D" />
+    Your decision as a branching tree, with the situation, the paths and the key factors.
+  </Card>
+  <Card title="5 · Branch selected" href="/product/the-fork">
+    <img src="/images/screens/05-fork-selected.png" alt="A selected branch with its preview card" />
+    Tap a node: it pulses, the others recede, and a preview shows cost, risk and flexibility.
+  </Card>
+  <Card title="6 · Path" href="/product/path-detail">
+    <img src="/images/screens/06-path.png" alt="Path detail header and timeline" />
+    Uncertainty, what it hinges on, and a timeline of what changes immediately.
+  </Card>
+  <Card title="7 · Weigh it up" href="/product/path-detail">
+    <img src="/images/screens/07-weigh-it-up.png" alt="Upside, tradeoffs and risks card" />
+    Upside, tradeoffs and what could go wrong, as short points.
+  </Card>
+  <Card title="8 · Compare" href="/product/compare">
+    <img src="/images/screens/08-compare.png" alt="Comparison matrix with level bars" />
+    Pick dimensions. The biggest difference rises to the top. No scores.
+  </Card>
+  <Card title="9 · Choose" href="/product/choose-and-keep">
+    <img src="/images/screens/09-choose.png" alt="Choose a path and write a note" />
+    Pick the path you lean toward (or “Still deciding”) and write a note.
+  </Card>
+  <Card title="10 · Journal" href="/product/decision-journal">
+    <img src="/images/screens/10-journal.png" alt="Decision journal" />
+    Your private, on-device history of decisions and why you made them.
+  </Card>
+</CardGroup>
+
+## Screens not pictured
+
+| Screen | Route | Notes |
+|---|---|---|
+| Launch | `/` | The Fork mark draws itself for about 0.85 s, then routes to `/onboarding` or `/home`. |
+| New decision | `/new` | The full composer with optional context fields and status banners. |
+| Paywall | `/paywall?reason=…` | A modal that shows the **real** monthly price from RevenueCat. Take this screenshot yourself with RevenueCat reachable. |
+| Settings | `/settings` | Plan, restore, manage subscription, delete data, replay the intro. |
+| Missing decision | `+not-found`, or any decision route whose id no longer exists | *“This decision isn’t here anymore. It may have been deleted, or it was an unsaved draft.”* with **Back to home**. |
+
+## Demo video
+
+The repository includes a 54-second demo recorded from the real app: [`docs/demo/fork-demo.mp4`](https://github.com/Nailer/fork/blob/main/docs/demo/fork-demo.mp4). To re-record it, see [Recording the demo](/contributing/demo-recording).

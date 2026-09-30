@@ -1,0 +1,65 @@
+---
+title: "Decision journal"
+description: "Your private, on-device history of decisions: what you leaned toward, why, and when."
+icon: "notebook-pen"
+---
+
+Route: `/history` (`src/app/history.tsx`)
+
+<img className="rounded-xl" src="/images/screens/10-journal.png" alt="The decision journal" width="320" />
+
+The journal lists every **kept** decision (drafts don’t appear), newest update first.
+
+## Layout
+
+- Title: **Decision journal**, with a count (*“3 decisions kept”*).
+- Free users see capacity, e.g. **3/5 on Free**. It turns gold when full.
+- Decisions are grouped by when they were last updated:
+  - **This week**: updated in the last 7 days
+  - **Earlier**: everything older
+
+Each row (`DecisionRow`) shows:
+
+| Part | Example |
+|---|---|
+| Decision title | *New laptop now, or one more year?* |
+| What you leaned toward | *Path C · Fix it up, then decide*, or *Still deciding* |
+| Your note (journal only) | *“Try the cheap fix first; revisit in March.”* |
+| Date | *Sep 28, 2026* (formatted in your locale), plus *· Sample* for the sample decision |
+
+A small Fork mark highlights the side of the chosen path.
+
+## Actions
+
+| Action | How | Result |
+|---|---|---|
+| **Open** | Tap a row | Opens the fork with the *You leaned toward…* banner |
+| **Explore again** | Open → *Explore this decision again* | Copies your words and context into the composer for a fresh exploration. The kept decision is unchanged. |
+| **Update** | Open → **Your fork** → change the choice or note → **Update decision** | Updates `chosen`, `note` and `updatedAt` |
+| **Delete** | Trash icon on the row → confirm | Removes the decision and its note from this device |
+
+The delete confirmation reads: *“‘New laptop now, or one more year?’ and your note will be removed from this device.”*
+
+## Empty state
+
+With nothing kept yet, the journal shows a drawn Fork mark, **“Your decision journal is empty”**, and three reasons to keep decisions:
+
+- See why you chose what you chose, months later.
+- Revisit the paths you didn’t take.
+- Notice patterns in how you decide.
+
+**Explore a decision** takes you to the New decision screen.
+
+## Limits
+
+| | Free | Fork Pro |
+|---|---|---|
+| Kept decisions | **5** | Unlimited |
+| Re-saving an existing decision | Always allowed | Always allowed |
+| Unsaved drafts kept | 3 newest | 3 newest |
+
+Home also shows the three most recent kept decisions under **Recent decisions**.
+
+## Storage
+
+The journal lives only in local storage (AsyncStorage key `fork:v1`). There’s no account, backup or sync. Uninstalling the app or clearing site data removes it. See [State and persistence](/architecture/state).

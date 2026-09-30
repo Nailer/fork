@@ -1,0 +1,55 @@
+---
+title: "Choose and keep"
+description: "The Your fork summary: recap, pick the path you lean toward, write a note to your future self, and keep it."
+icon: "circle-check"
+---
+
+Route: `/decision/[id]/summary` (`src/app/decision/[id]/summary.tsx`)
+
+<img className="rounded-xl" src="/images/screens/09-choose.png" alt="Choose a path and add a note" width="320" />
+
+## The recap
+
+| Section | Content |
+|---|---|
+| **Decision** | Your original description, word for word |
+| **Paths explored** | Every path with its letter badge and **Explored** / **Not opened**. Tap to open it. |
+| **Where the paths differ most** | Up to 3 dimensions with a non-zero spread, taken from your selected comparison dimensions, e.g. *Cost: A: high cost · B: low cost · C: some cost* |
+| **Most important tradeoffs** | The first tradeoff of each path |
+| **Questions worth answering** | The decision-level `questions` (1–5) |
+
+## Choosing
+
+Under **Which path are you leaning toward?** there’s one radio option per path plus **Still deciding**. The hint reads: *“Fork doesn’t pick for you. This is your call — you can change it later.”*
+
+Below it, **Why I’m choosing this** is an optional note (up to **600 characters**) with the placeholder *“Optional — a note to your future self”*.
+
+## Keeping it
+
+The footer button changes with state:
+
+| State | Button |
+|---|---|
+| New decision, journal has room | **Keep this decision** |
+| Already kept | **Update decision** |
+| Free user, journal full (5 kept), and this decision isn’t kept yet | **Unlock unlimited history** (gold, with a lock), which opens the paywall with `reason=save` |
+
+The button stays disabled until you pick an option. Keeping a decision:
+
+1. stores `chosen` as `{ kind: 'scenario', scenarioId }` or `{ kind: 'undecided' }`,
+2. trims and stores the note,
+3. sets `saved: true` and `updatedAt: now`,
+4. plays a success haptic and fires `decision_saved` with `undecided` and `withNote`.
+
+<Info>
+Re-saving a decision that’s already in your journal is **always allowed**, even when the Free journal is full. Only *adding* a sixth decision needs Pro.
+</Info>
+
+## Confirmation
+
+A full-screen confirmation shows **Decision kept.**, with a tick in the chosen path’s colour:
+
+- For a path: *“You’re leaning toward ‘Fix it up, then decide’. It’s in your history whenever you want to revisit it.”*
+- For Still deciding: *“You’re still deciding — that’s fine. Come back to it any time from your history.”*
+
+Then either **Go to my decisions** (opens the journal) or **Back to home**.

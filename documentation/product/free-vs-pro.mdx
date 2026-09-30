@@ -1,0 +1,68 @@
+---
+title: "Free vs Fork Pro"
+description: "Exactly what each plan includes, where the limits are enforced, and when you’ll see an upgrade prompt."
+icon: "crown"
+---
+
+Fork Pro is a monthly subscription sold through **RevenueCat**. It unlocks the entitlement `fork_pro`.
+
+## Comparison
+
+| Feature | Free | Fork Pro |
+|---|---|---|
+| **Decision explorations** | 3 per rolling 7 days | Unlimited |
+| **Paths per decision** | 2–3 (standard depth) | 3–4 (deep depth) |
+| **Where each path could split** (sub-branches) | Locked preview | Included: 2 per path |
+| **Comparison dimensions** | 4: cost, time, flexibility, risk | All 8: + effort, upside, short-term and long-term impact |
+| **Decision journal** | 5 kept decisions | Unlimited |
+| **Sample decision** | ✓ | ✓ |
+| **Price** | Free | The monthly price from the RevenueCat current offering |
+
+These numbers come from `src/domain/limits.ts` and `src/domain/dimensions.ts`:
+
+```ts src/domain/limits.ts
+export const FREE_WEEKLY_EXPLORATIONS = 3;
+export const FREE_SAVED_DECISIONS = 5;
+export const FREE_MAX_PATHS = 3;
+export const PRO_MAX_PATHS = 4;
+export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+```
+
+## How depth works
+
+Your plan at the moment you tap **Build my paths** decides the depth:
+
+- **Free → `standard`.** The model is asked for 2 or 3 paths with `branches: null`. The client also strips any branches and keeps at most 3 paths.
+- **Pro → `deep`.** The model is asked for 3 or 4 paths, each with exactly two branches. The client keeps at most 4.
+
+A decision keeps the depth it was built with. Upgrading later doesn’t add sub-branches to older decisions. Instead, the path screen explains: *“This exploration was built at standard depth. New decisions you explore with Fork Pro show where each path could split.”*
+
+## Upgrade moments
+
+Fork only asks you to upgrade where Pro genuinely adds something:
+
+| Where | Trigger | Paywall headline |
+|---|---|---|
+| New decision / Home | 0 explorations left | *You’ve used this week’s 3 free explorations.* |
+| Your fork | Keeping a 6th decision | *Your free journal holds 5 decisions — and it’s full.* |
+| Fork / Path | Tapping a locked sub-branch teaser | *See where each path could split once you’re on it.* |
+| Compare | Tapping a locked dimension | *Compare paths on every dimension that matters.* |
+| Home card, allowance pips, Settings | Voluntary | *For the decisions that deserve more than a coin flip.* |
+
+The paywall always has a visible **close** button, **Not now** and **Restore purchases**, and it makes no fake-savings claims. See [Paywall](/revenuecat/paywall).
+
+## The rolling window
+
+The allowance isn’t reset on Mondays. Fork keeps the timestamps of your successful explorations and counts those from the last 7 days:
+
+```ts
+recentExplorations(timestamps, now) =
+  timestamps.filter(t => t <= now && now - t < WEEK_MS)
+```
+
+- Timestamps from the future (a changed device clock) are ignored.
+- When you’re out, `nextFreeSlotAt()` returns the oldest exploration + 7 days, and the New decision banner names that weekday.
+
+<Info>
+The allowance is enforced **on the device**. The edge function rate-limits by IP (12 requests per 10 minutes per instance) but doesn’t check the entitlement. Server-side entitlement checks are on the [roadmap](/resources/roadmap).
+</Info>

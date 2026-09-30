@@ -1,0 +1,102 @@
+---
+title: "Introduction"
+description: "Fork is an AI decision explorer. It maps a hard choice into paths you can explore, compare and choose between, and it never picks for you."
+icon: "git-fork"
+---
+
+<img className="rounded-xl" src="/images/poster.jpg" alt="Fork demo: a decision drawn as a branching tree of possible paths" />
+
+## Don’t ask what to choose. Explore what each choice changes.
+
+**Fork** turns a difficult decision into **a set of paths you can explore**. You describe what you’re deciding in a sentence or two. Fork maps it into **2–4 materially different paths** and shows what each one changes, its tradeoffs and what it assumes. You can compare the paths side by side. Then **you** choose, and Fork keeps a note of why in a private decision journal.
+
+Fork never tells you what to do. It never ranks the options and never claims to predict the future.
+
+Fork is one codebase that runs on **iOS, Android and the web**. It is built with Expo and React Native. A Supabase Edge Function acts as the AI proxy (Google Gemini or Anthropic Claude), and **RevenueCat** runs the **Fork Pro** subscription.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="zap" href="/quickstart">
+    Clone, install and run Fork in the browser in about two minutes. No `.env` needed.
+  </Card>
+  <Card title="How it works" icon="workflow" href="/how-it-works">
+    The full loop: describe, analyse, fork, explore, compare, choose and journal.
+  </Card>
+  <Card title="Architecture" icon="layers" href="/architecture/overview">
+    How the app, the AI proxy, local storage and RevenueCat fit together.
+  </Card>
+  <Card title="Deploy checklist" icon="rocket" href="/deploy/checklist">
+    Everything needed to take Fork live: AI proxy, web, native builds and these docs.
+  </Card>
+</CardGroup>
+
+## Who these docs are for
+
+<Tabs>
+  <Tab title="People using Fork">
+    Start with [How it works](/how-it-works) and the **Using Fork** section. It walks through every screen, what each piece of information means, and what Fork Pro adds.
+  </Tab>
+  <Tab title="Developers">
+    Read the [Architecture overview](/architecture/overview), then the [AI layer](/ai/overview) and [RevenueCat & Fork Pro](/revenuecat/overview) sections. The [API reference](/api-reference/introduction) documents the edge function’s HTTP contract and every data type.
+  </Tab>
+  <Tab title="Operators & judges">
+    The [Deploy checklist](/deploy/checklist) lists every step that needs a human (API keys, dashboards, store accounts). [Troubleshooting](/deploy/troubleshooting) maps every error message to its cause.
+  </Tab>
+</Tabs>
+
+## The problem Fork solves
+
+Hard decisions stall for three reasons:
+
+<Steps>
+  <Step title="The options stay fuzzy">
+    “Buy now or wait?” hides a third option (fix what you have) and a dozen unspoken assumptions.
+  </Step>
+  <Step title="The tradeoffs are invisible">
+    You weigh cost against peace of mind in your head, and one worry drowns out everything else.
+  </Step>
+  <Step title="AI chatbots answer instead of mapping">
+    Chatbots are built to answer. They pick for you, sound more certain than they should, and leave you with a wall of text instead of a map.
+  </Step>
+</Steps>
+
+Fork’s answer is **interactive decision scenarios**:
+
+| | |
+|---|---|
+| **A fork, not an answer** | Your decision is drawn as an animated branching tree. Each branch (A–D) is a path you can tap into. |
+| **Paths are structured, not prose** | Each path is a set of short cards: what changes immediately, upside, tradeoffs, risks, assumptions, uncertainty, what would change it, and questions worth answering. |
+| **Compare on what matters to you** | You pick the dimensions you care about (cost, time, flexibility, risk…). The rows where the paths differ most rise to the top. There are no scores and no winner. |
+| **You decide, and remember why** | You pick the path you’re leaning toward (or “still deciding”), write a note to your future self and keep it in your journal. |
+
+## At a glance
+
+<CardGroup cols={3}>
+  <Card title="3 platforms" icon="smartphone">
+    iOS, Android and web from one Expo SDK 57 codebase.
+  </Card>
+  <Card title="2–4 paths" icon="git-branch">
+    Free explorations build up to 3 paths. Fork Pro builds up to 4, each with sub-branches.
+  </Card>
+  <Card title="8 dimensions" icon="sliders-horizontal">
+    Cost, time, flexibility, risk, effort, upside, short-term and long-term impact.
+  </Card>
+  <Card title="52 tests" icon="flask-conical">
+    Jest tests cover the schema, recovery, limits, comparison, the AI client, the store and billing.
+  </Card>
+  <Card title="0 analytics SDKs" icon="shield-check">
+    Decisions stay on the device. Product events print only in development.
+  </Card>
+  <Card title="1 entitlement" icon="badge-check">
+    `fork_pro`, sold as a monthly package through RevenueCat.
+  </Card>
+</CardGroup>
+
+## Project facts
+
+| | |
+|---|---|
+| **Repository** | [github.com/Nailer/fork](https://github.com/Nailer/fork) (MIT) |
+| **Live web build** | [nailer.github.io/fork](https://nailer.github.io/fork/) (deployed by GitHub Actions on every push to `main`) |
+| **App version** | `1.0.0` |
+| **Bundle ID** | `io.github.nailer.fork` (override with `APP_BUNDLE_ID`) |
+| **Built for** | RevenueCat Shipaton 2026, Next Gen award |

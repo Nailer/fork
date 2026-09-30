@@ -1,0 +1,48 @@
+---
+title: "Onboarding"
+description: "The launch animation and the three-page introduction that frames what Fork is (and isn’t)."
+icon: "sparkles"
+---
+
+<img className="rounded-xl" src="/images/screens/01-onboarding.png" alt="Onboarding page one: every choice creates a different path" width="320" />
+
+## Launch
+
+Route: `/` (`src/app/index.tsx`)
+
+When the app opens, the **Fork mark** (one stem splitting into an amber and a teal branch) draws itself over 700 ms and the wordmark fades in. After **850 ms** Fork routes to:
+
+- `/onboarding` if you haven’t finished onboarding, or
+- `/home` if you have.
+
+The splash screen stays up until the fonts (Fraunces and Inter) have loaded and the local store has rehydrated from storage. That way the first frame you see is never unstyled or missing data.
+
+## The three pages
+
+Route: `/onboarding` (`src/app/onboarding.tsx`)
+
+| # | Title | Body | Illustration |
+|---|---|---|---|
+| 1 | **Every choice creates a different path.** | Describe a decision in your own words. Fork lays out the paths in front of you. | A fork tree that draws itself: *Take the offer*, *Stay and grow*, *Negotiate first* |
+| 2 | **Explore the tradeoffs before you decide.** | Open each path to see what changes, what it assumes, and what could go wrong — side by side. | A mini comparison of Cost, Flexibility and Risk for paths A and B |
+| 3 | **Fork keeps the decision yours.** | No verdicts, no predictions. You pick the path, note why, and come back to it later. | The Fork mark with one branch highlighted, and a *You choose* pill |
+
+### Controls
+
+- **Swipe** horizontally, or tap **Next**, to page through.
+- **Skip** (top right, pages 1–2) finishes onboarding immediately.
+- **Start exploring** on page 3 finishes onboarding.
+- The background tint changes to the current page’s path colour.
+- Page dots show your position. Screen readers announce *“Page N of 3”*.
+
+Finishing onboarding sets `onboarded: true` in the persisted store, fires the `onboarding_completed` event, and replaces the route with `/home`.
+
+## Replaying the introduction
+
+**Settings → About → Replay introduction** resets `onboarded` to `false` and opens `/onboarding` again. **Delete all my data** also brings you back to onboarding.
+
+## Accessibility
+
+- Each page is one accessible element whose label is the title plus the body.
+- With **Reduce Motion** on, the illustrations appear fully drawn with no animation.
+- Content is centred in a column no wider than 520 px on tablets and desktop browsers.

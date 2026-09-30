@@ -1,0 +1,83 @@
+---
+title: "Path detail"
+description: "Everything Fork knows about one path, laid out as short, scannable cards."
+icon: "route"
+---
+
+Route: `/decision/[id]/path/[sid]` (`src/app/decision/[id]/path/[sid].tsx`)
+
+<CardGroup cols={2}>
+  <img className="rounded-xl" src="/images/screens/06-path.png" alt="Path header, uncertainty and timeline" />
+  <img className="rounded-xl" src="/images/screens/07-weigh-it-up.png" alt="Weigh it up: upside, tradeoffs, what could go wrong" />
+</CardGroup>
+
+Opening a path marks it as **explored** (it gets a tick on the fork screen and in the summary) and fires `scenario_opened` with the path index. The background is tinted with the path’s colour throughout.
+
+## Sections, top to bottom
+
+<Steps>
+  <Step title="Header">
+    - The letter badge and *Path B of 3 · One possible path*.
+    - The **title** (max 90 characters) and **summary** (max 400).
+    - **How uncertain is this path?** A 3-step meter labelled *Low / Moderate / High uncertainty* (`uncertaintyLevel`).
+    - **Hinges on**: the first two `importantVariables`, joined with “·”.
+  </Step>
+  <Step title="What changes immediately">
+    A vertical **timeline** of `immediateEffects` (1–5 items). The first dot is filled with the path colour.
+  </Step>
+  <Step title="Weigh it up">
+    One card with three groups, each up to 5 points:
+    - **Potential upside** (green, `benefits`)
+    - **Tradeoffs** (amber, `tradeoffs`)
+    - **What could go wrong** (coral, `risks`)
+  </Step>
+  <Step title="Over time">
+    `longerTermConsiderations` (1–5), each with an arrow marker.
+  </Step>
+  <Step title="What this path rests on">
+    A bordered card that makes the reasoning explicit:
+    - **This path assumes…** (`assumptions`, 1–5)
+    - **Uncertain** (`uncertainty`, 1–4, in italics)
+    - **What would change this path** (`whatWouldChange`, 1–4)
+  </Step>
+  <Step title="Where this path could split">
+    The two most important ways this path could split once you’re on it (`branches`). Each has a **label**, the **condition** that leads there, and the likely **outcome**.
+    - **Pro + deep analysis**: shown in full, with a small fork mark highlighting the left or right split.
+    - **Free viewing a deep analysis**: a locked card, *“2 possible next splits · See what happens if this path goes well — and if it doesn’t. Unlock with Fork Pro →”*
+    - **Standard analysis**: an explanation that new Pro explorations include splits.
+  </Step>
+  <Step title="Questions worth answering">
+    `questionsToConsider` (1–4), numbered in the path colour.
+  </Step>
+</Steps>
+
+## Footer
+
+- **Next: Path C** cycles through the paths in order, wrapping around (it replaces the route, so Back still goes to the fork).
+- **Compare** opens the comparison.
+
+## Example (from the sample decision)
+
+<Accordion title="Path A · Buy a new laptop now">
+**Summary.** You spend about $1,500 now and remove the day-to-day friction immediately. This path assumes the slowdowns are genuinely costing you work time.
+
+**What changes immediately**
+- Design tools and exports run without waiting
+- All-day battery removes the hunt for a charger
+- About $1,500 leaves your savings this month
+- A weekend of setup and migrating files
+
+**Tradeoffs**
+- The largest up-front cost of any path
+- You give up the option of waiting for better hardware
+
+**This path assumes…**
+- The slowdowns are caused by hardware, not a cluttered system
+- Spending $1,500 now does not put essentials at risk
+
+**Where this path could split**
+- *The speed-up is big*: if the slowdowns were mostly hardware, hours come back each week and the cost feels justified within months.
+- *The speed-up is small*: if the slowdown was mostly software clutter, you enjoy the battery, but a cheaper fix might have covered most of it.
+</Accordion>
+
+The full field list, types and limits are in [Scenario](/api-reference/scenario).
