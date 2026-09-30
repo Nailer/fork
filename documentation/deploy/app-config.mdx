@@ -1,0 +1,75 @@
+---
+title: "App config"
+description: "A tour of app.config.ts: identity, platforms, icons, splash, plugins and web settings."
+icon: "file-cog"
+---
+
+`app.config.ts` is a typed `ExpoConfig`. Using TypeScript instead of `app.json` lets identifiers and web paths come from the environment.
+
+```ts app.config.ts
+const bundleId = process.env.APP_BUNDLE_ID ?? 'io.github.nailer.fork';
+
+const config: ExpoConfig = {
+  name: 'Fork',
+  slug: 'fork',
+  scheme: 'fork',
+  version: '1.0.0',
+  description: 'Explore the paths behind difficult decisions.',
+  orientation: 'portrait',
+  icon: './assets/icon.png',
+  userInterfaceStyle: 'dark',
+  backgroundColor: '#0A0B0F',
+  ios: {
+    bundleIdentifier: bundleId,
+    buildNumber: '1',
+    supportsTablet: false,
+    config: { usesNonExemptEncryption: false },
+  },
+  android: {
+    package: bundleId,
+    versionCode: 1,
+    adaptiveIcon: {
+      backgroundColor: '#0A0B0F',
+      foregroundImage: './assets/android-icon-foreground.png',
+      monochromeImage: './assets/android-icon-monochrome.png',
+    },
+    blockedPermissions: ['android.permission.RECORD_AUDIO'],
+    predictiveBackGestureEnabled: false,
+  },
+  web: { favicon: './assets/favicon.png', bundler: 'metro', output: 'single' },
+  plugins: [
+    'expo-router',
+    ['expo-splash-screen', { image: './assets/splash-icon.png', imageWidth: 120, resizeMode: 'contain', backgroundColor: '#0A0B0F' }],
+    'expo-font',
+  ],
+  experiments: { typedRoutes: false, ...(process.env.EXPO_BASE_URL ? { baseUrl: process.env.EXPO_BASE_URL } : {}) },
+  extra: { eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined },
+};
+```
+
+## Notes
+
+| Setting | Why |
+|---|---|
+| `userInterfaceStyle: 'dark'` | Fork is dark-only by design |
+| `supportsTablet: false` | iPhone-first layout (on iPad it runs in compatibility mode) |
+| `usesNonExemptEncryption: false` | Only standard HTTPS, so no export compliance paperwork |
+| `blockedPermissions: RECORD_AUDIO` | Some dependencies can pull it in. Fork doesn’t use audio. |
+| `web.output: 'single'` | A single-page app, which is what GitHub Pages needs with the 404 fallback |
+| `typedRoutes: false` | Keeps typechecking independent of the generated route types |
+
+## Assets
+
+| File | Use |
+|---|---|
+| `assets/icon.png` | App icon (original artwork: a path splitting in two) |
+| `assets/android-icon-foreground.png`, `android-icon-monochrome.png` | Android adaptive and themed icon |
+| `assets/splash-icon.png` | Splash |
+| `assets/favicon.png` | Web favicon |
+
+## Checking the config
+
+```bash
+npx expo config --type public     # prints the resolved config
+npx expo-doctor                   # dependency and config health
+```

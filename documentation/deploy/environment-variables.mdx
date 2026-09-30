@@ -1,0 +1,86 @@
+---
+title: "Environment variables"
+description: "Every variable Fork reads, where it’s set, its default, and whether it’s public or secret."
+icon: "variable"
+---
+
+<Warning>
+**The golden rule.** `EXPO_PUBLIC_*` values are compiled into the app and visible to everyone. Secrets belong **only** in Supabase Edge Function secrets.
+</Warning>
+
+## App (public, build time)
+
+Read in `src/services/config.ts` and `app.config.ts`. Empty or whitespace-only values count as unset.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `EXPO_PUBLIC_FORK_API_URL` | `https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision` | The AI proxy URL |
+| `EXPO_PUBLIC_FORK_API_KEY` | The project anon key, **only** when the URL is the default | Supabase anon key, sent as `Authorization: Bearer` and `apikey` |
+| `EXPO_PUBLIC_REVENUECAT_TEST_KEY` | `test_hpOvIzAjDWcgumcXqMtHjYBrjpG` | Test Store key: web, Expo Go, dev builds, and the native fallback |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | — | App Store key (`appl_…`) for iOS builds |
+| `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | — | Play Store key (`goog_…`) for Android builds |
+| `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT` | `fork_pro` | Entitlement identifier |
+
+### Resolution logic
+
+```ts
+const customUrl = read(process.env.EXPO_PUBLIC_FORK_API_URL);
+const resolvedAiUrl = customUrl ?? DEFAULT_AI_URL;
+const configuredAiKey = read(process.env.EXPO_PUBLIC_FORK_API_KEY);
+
+export const config = {
+  aiUrl: resolvedAiUrl,
+  aiKey: configuredAiKey ?? (resolvedAiUrl === DEFAULT_AI_URL ? DEFAULT_AI_KEY : undefined),
+  revenueCatKey: revenueCatKey(),   // ios: IOS ?? TEST, android: ANDROID ?? TEST, web: TEST
+  entitlementId: read(process.env.EXPO_PUBLIC_REVENUECAT_ENTITLEMENT) ?? 'fork_pro',
+};
+```
+
+## App config (build time, not bundled)
+
+| Variable | Default | Used in |
+|---|---|---|
+| `APP_BUNDLE_ID` | `io.github.nailer.fork` | iOS `bundleIdentifier` and Android `package` |
+| `EXPO_BASE_URL` | unset | Web sub-path (`/fork` on GitHub Pages) |
+| `EAS_PROJECT_ID` | unset | `extra.eas.projectId` |
+| `EXPO_NO_TELEMETRY` | unset | Set to `1` in CI |
+
+## Edge function (server, runtime)
+
+Set with `npx supabase secrets set NAME=value --project-ref <ref>`.
+
+| Variable | Secret? | Default | Purpose |
+|---|---|---|---|
+| `GEMINI_API_KEY` | **Yes** | — | Gemini access. Selects Gemini when `FORK_AI_PROVIDER` is unset. |
+| `ANTHROPIC_API_KEY` | **Yes** | — | Claude access |
+| `FORK_AI_PROVIDER` | no | auto | `gemini` or `anthropic` |
+| `FORK_GEMINI_MODEL` | no | `gemini-2.5-flash` | Gemini model |
+| `FORK_MODEL` | no | `claude-opus-5` | Claude model |
+| `FORK_EFFORT` | no | `low` | Claude effort: `low`, `medium` or `high` |
+| `FORK_RATE_LIMIT_PER_10_MIN` | no | `12` | Per-IP limit per instance |
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` and friends are injected by Supabase automatically. Fork doesn’t use them.
+
+## Where each value is set today
+
+| Place | Sets |
+|---|---|
+| `src/services/config.ts` | Defaults for the AI URL, anon key and Test Store key |
+| `eas.json` → `build.base.env` | `EXPO_PUBLIC_FORK_API_URL`, `EXPO_PUBLIC_FORK_API_KEY`, `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT` |
+| `.github/workflows/deploy-web.yml` | `EXPO_BASE_URL`, `EXPO_PUBLIC_FORK_API_URL`, `EXPO_PUBLIC_FORK_API_KEY` (from a repo secret) |
+| Local `.env` (git-ignored) | Anything above, for your machine |
+| EAS environment variables | Store keys for production builds |
+| Supabase secrets | Model keys and tuning |
+
+## .env.example
+
+```bash
+# Copy to .env and fill in. Everything here is PUBLIC and ends up inside the app
+# bundle — never put secret keys in an EXPO_PUBLIC_* variable.
+EXPO_PUBLIC_FORK_API_URL=https://<your-project-ref>.supabase.co/functions/v1/analyze-decision
+EXPO_PUBLIC_FORK_API_KEY=<supabase-anon-key>
+EXPO_PUBLIC_REVENUECAT_TEST_KEY=test_<...>
+EXPO_PUBLIC_REVENUECAT_IOS_KEY=appl_<...>
+EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=goog_<...>
+EXPO_PUBLIC_REVENUECAT_ENTITLEMENT=fork_pro
+```

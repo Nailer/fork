@@ -1,0 +1,75 @@
+---
+title: "Web on GitHub Pages"
+description: "How the CI workflow tests, exports and publishes the web build to nailer.github.io/fork."
+icon: "globe"
+---
+
+**Live URL:** [https://nailer.github.io/fork/](https://nailer.github.io/fork/)
+**Workflow:** `.github/workflows/deploy-web.yml` (*Test & deploy web*)
+**Triggers:** every push to `main`, plus manual **Run workflow**
+
+## Pipeline
+
+```mermaid
+flowchart LR
+  A[checkout] --> B[setup-node 22 + npm cache]
+  B --> C[npm ci]
+  C --> D[typecheck]
+  D --> E[lint]
+  E --> F["jest --ci"]
+  F --> G["expo export --platform web<br/>EXPO_BASE_URL=/fork"]
+  G --> H["cp index.html 404.html<br/>touch .nojekyll"]
+  H --> I[configure-pages]
+  I --> J[upload-pages-artifact dist]
+  J --> K[deploy-pages]
+```
+
+Any failing check stops the deploy, so a broken build never reaches Pages.
+
+### Build environment
+
+```yaml
+env:
+  EXPO_BASE_URL: /fork
+  EXPO_NO_TELEMETRY: 1
+  EXPO_PUBLIC_FORK_API_URL: https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision
+  EXPO_PUBLIC_FORK_API_KEY: ${{ secrets.EXPO_PUBLIC_FORK_API_KEY }}
+```
+
+- `EXPO_BASE_URL=/fork` sets `experiments.baseUrl` in `app.config.ts`, so assets and routes resolve under the project sub-path.
+- If the `EXPO_PUBLIC_FORK_API_KEY` secret is empty, `config.ts` still uses the built-in anon key, because the URL is the project default.
+
+### SPA fallback
+
+GitHub Pages has no rewrites. Copying `index.html` to `404.html` makes deep links such as `/fork/history` load the app, and Expo Router then renders the right screen. `.nojekyll` stops Jekyll from dropping the `_expo` folder.
+
+## First-time setup
+
+1. **Settings → Pages → Build and deployment → Source: GitHub Actions.** (`configure-pages` tries to enable this automatically with `enablement: true`.)
+2. *(Optional)* **Settings → Secrets and variables → Actions → New repository secret:** `EXPO_PUBLIC_FORK_API_KEY` = your anon key.
+3. Push to `main`, or run the workflow manually.
+
+## Building locally
+
+```bash
+npm run build:web                 # expo export --platform web → dist/
+node scripts/serve-dist.mjs       # http://localhost:8081 with SPA fallback
+# to mimic Pages:
+EXPO_BASE_URL=/fork npx expo export --platform web
+```
+
+The current export is about **4.3 MB** (a single ~3 MB JS entry bundle plus fonts and assets).
+
+## Known web quirks (already handled)
+
+| Issue | Fix in code |
+|---|---|
+| False “You’re offline” on Pages because NetInfo probed the account root, which returns 404 | Web uses `navigator.onLine` (`home.tsx`, `new.tsx`) |
+| Several trees on one page shared SVG gradient IDs | IDs are suffixed with `useId()` (`ForkTree.tsx`) |
+| RN-only accessibility props warned as unknown DOM attributes | `decorative` uses `aria-hidden` on the web (`theme/a11y.ts`) |
+| Focus outline on inputs | `webNoOutline` style (`theme/web.ts`) |
+| No native animation driver on the web | `NATIVE_DRIVER = Platform.OS !== 'web'` |
+
+## Hosting elsewhere
+
+`dist/` is a static SPA. Any static host works (Netlify, Vercel, Cloudflare Pages, S3) if it rewrites unknown paths to `index.html`. Leave `EXPO_BASE_URL` unset when serving from a domain root.

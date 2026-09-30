@@ -1,0 +1,79 @@
+---
+title: "Native builds with EAS"
+description: "Build, sign and submit the iOS and Android apps with EAS, using the profiles in eas.json."
+icon: "smartphone"
+---
+
+Fork uses **Continuous Native Generation**: there are no committed `ios/` or `android/` folders. EAS builds them in the cloud from `app.config.ts`, so you don’t need Xcode or Android Studio.
+
+## Profiles (`eas.json`)
+
+| Profile | Extends | Purpose | Output |
+|---|---|---|---|
+| `base` | — | Shared env: AI URL, anon key, entitlement `fork_pro` | — |
+| `development` | base | `developmentClient: true`, internal distribution, EAS env `development` | A dev client for `npx expo start --dev-client` |
+| `preview` | base | Internal distribution, EAS env `preview`, Android `apk` | Installable test builds |
+| `production` | base | EAS env `production`, `autoIncrement: true` | Store binaries |
+
+`cli.appVersionSource` is `remote`, so EAS manages build numbers.
+
+## First build
+
+<Steps>
+  <Step title="Log in and initialise">
+    ```bash
+    npx eas-cli@latest login
+    npx eas-cli@latest init          # creates the EAS project and prints its ID
+    ```
+    Set `EAS_PROJECT_ID` in your environment (or EAS env) so `app.config.ts` writes `extra.eas.projectId`.
+  </Step>
+  <Step title="Choose a bundle ID">
+    The default is `io.github.nailer.fork`. To publish under another account:
+    ```bash
+    export APP_BUNDLE_ID=com.yourname.fork
+    ```
+    It’s used for both the iOS `bundleIdentifier` and the Android `package`.
+  </Step>
+  <Step title="Add store keys to EAS">
+    ```bash
+    npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_REVENUECAT_IOS_KEY --value appl_... --visibility plaintext
+    npx eas-cli@latest env:create --environment production --name EXPO_PUBLIC_REVENUECAT_ANDROID_KEY --value goog_... --visibility plaintext
+    ```
+    These are public keys, so plaintext visibility is fine.
+  </Step>
+  <Step title="Build">
+    ```bash
+    npx eas-cli@latest build --profile development --platform ios       # or android / all
+    npx eas-cli@latest build --profile preview --platform android       # shareable APK
+    npx eas-cli@latest build --profile production --platform all
+    ```
+  </Step>
+  <Step title="Submit">
+    ```bash
+    npx eas-cli@latest submit --profile production --platform ios
+    npx eas-cli@latest submit --profile production --platform android
+    ```
+  </Step>
+</Steps>
+
+## Why a development build?
+
+Expo Go only includes its bundled native modules and can only run RevenueCat in its browser/preview mode. For real App Store or Google Play purchases you need a build that includes `react-native-purchases` natively: a development build or a store build.
+
+## App config highlights
+
+| Setting | Value |
+|---|---|
+| Name / slug / scheme | `Fork` / `fork` / `fork` |
+| Version | `1.0.0`, iOS `buildNumber` 1, Android `versionCode` 1 |
+| Orientation | Portrait |
+| UI style | Dark, background `#0A0B0F` |
+| iPad | `supportsTablet: false` |
+| Encryption | `usesNonExemptEncryption: false` (skips the export compliance prompt) |
+| Android | Adaptive icon (foreground + monochrome), `RECORD_AUDIO` blocked, predictive back disabled |
+| Splash | `splash-icon.png`, 120 px wide, `#0A0B0F` background |
+| Plugins | `expo-router`, `expo-splash-screen`, `expo-font` |
+
+## Over-the-air updates
+
+JS-only changes (copy, UI, domain logic) can be shipped with `eas update` once `expo-updates` is added. It isn’t installed yet. Add it with `npx expo install expo-updates` and follow the EAS Update guide.

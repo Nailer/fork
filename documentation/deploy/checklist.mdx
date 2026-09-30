@@ -1,0 +1,86 @@
+---
+title: "Deploy checklist"
+description: "Everything needed to take Fork fully live, with the current status of each piece and who has to do it."
+icon: "list-checks"
+---
+
+Status checked on **30 September 2026** against `main` (`a370f53` + docs commits).
+
+| # | Piece | Status | Who |
+|---|---|---|---|
+| 1 | App builds, typechecks, lints, 52 tests pass | ✅ Verified | — |
+| 2 | Web build on GitHub Pages ([nailer.github.io/fork](https://nailer.github.io/fork/)) | ✅ The last 4 *Test & deploy web* runs succeeded | Automatic on push to `main` |
+| 3 | **AI proxy has a model key** | ❌ Every request returns `503 not_configured` | **Owner**: set a secret |
+| 4 | **AI proxy runs the latest code** | ❌ Deployed v12 is the older Claude-only build. The Gemini-first code isn’t deployed. | **Owner**: deploy |
+| 5 | RevenueCat Test Store offering | ⚠️ A default `test_` key is built in. Confirm the offering in the dashboard. | Owner |
+| 6 | Mintlify docs site | ⚠️ Content is in `documentation/`. The Mintlify project needs connecting. | **Owner** |
+| 7 | Native store builds | Optional | Owner |
+
+## 1. Fix the AI proxy (about 5 minutes)
+
+<Steps>
+  <Step title="Get a model key">
+    **Recommended:** a Gemini key from [Google AI Studio](https://aistudio.google.com/apikey) (there’s a free tier, and it’s fast).
+    Or an Anthropic key from [console.anthropic.com](https://console.anthropic.com) with at least $5 of credit.
+  </Step>
+  <Step title="Log in to Supabase CLI">
+    ```bash
+    npx supabase login
+    ```
+  </Step>
+  <Step title="Set the secret">
+    <CodeGroup>
+    ```bash Gemini
+    npx supabase secrets set GEMINI_API_KEY=AIza... --project-ref gwruqdpbugqjrkyfvipa
+    ```
+    ```bash Claude
+    npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-... --project-ref gwruqdpbugqjrkyfvipa
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Deploy the latest function">
+    From the repo root:
+    ```bash
+    npx supabase functions deploy analyze-decision --project-ref gwruqdpbugqjrkyfvipa
+    ```
+    <Warning>Don’t add `--no-verify-jwt`. The app sends the anon key, and JWT verification is part of the security model.</Warning>
+  </Step>
+  <Step title="Test it">
+    ```bash
+    ANON=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3cnVxZHBidWdxanJreWZ2aXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MTk3NDMsImV4cCI6MjA5ODM5NTc0M30.r-M2bpe7BVPtcwJEU-GYn4H0RGRhEsGxXSuxIVV_FWY
+    curl -s https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision \
+      -H "Authorization: Bearer $ANON" -H "apikey: $ANON" -H "Content-Type: application/json" \
+      -d '{"description":"Should I buy a new laptop now or wait a year?","depth":"standard"}' | head -c 400
+    ```
+    You should see `{"analysis":{"decisionTitle":…` and, at the end, `"provider":"gemini"` (or `anthropic`).
+  </Step>
+</Steps>
+
+Details: [Deploy the AI proxy](/deploy/supabase-edge-function).
+
+## 2. Confirm RevenueCat (about 5 minutes)
+
+In the RevenueCat dashboard for the project whose Test Store key is `test_hpOvIzAjDWcgumcXqMtHjYBrjpG`:
+
+- [ ] Product `fork_pro_monthly` exists in the **Test Store**
+- [ ] Entitlement **`fork_pro`** has that product attached
+- [ ] An offering is marked **Current** with a **Monthly** package containing it
+
+Then in the app: **Home → Fork Pro** shows your price → **Continue with Fork Pro** → complete the purchase → the **PRO** badge appears. See [RevenueCat setup](/revenuecat/setup).
+
+## 3. Publish these docs (about 5 minutes)
+
+1. Sign in at [dashboard.mintlify.com](https://dashboard.mintlify.com) and create a new project (e.g. subdomain `fork`).
+2. Install the Mintlify GitHub App on **Nailer/fork**.
+3. In **Settings → Git settings**, pick the repo, branch `main`, turn on **Set up as monorepo**, and set the path to **`/documentation`**.
+4. Save. Mintlify builds and publishes, and every push to `main` redeploys.
+
+See [Documentation site](/deploy/documentation-site).
+
+## 4. Web build (already live)
+
+Nothing to do. Optionally, add a repo secret `EXPO_PUBLIC_FORK_API_KEY` (the workflow reads it, but `config.ts` falls back to the built-in anon key for the default endpoint). See [Web on GitHub Pages](/deploy/web-github-pages).
+
+## 5. Native builds (optional)
+
+Not needed for the hackathon. When you’re ready: [Native builds with EAS](/deploy/native-eas) and [Store builds](/revenuecat/store-builds).

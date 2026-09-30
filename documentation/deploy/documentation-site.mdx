@@ -1,0 +1,67 @@
+---
+title: "Documentation site"
+description: "How this Mintlify site is organised, previewed locally, and deployed from the repository."
+icon: "book-marked"
+---
+
+These docs live in the repository under **`documentation/`** and are built with [Mintlify](https://mintlify.com).
+
+## Layout
+
+```text
+documentation/
+├── docs.json                 Site config: theme, colours, fonts, logo, navigation tabs
+├── logo/                     light.svg, dark.svg, icon.png (favicon)
+├── images/                   poster.jpg, screens/01-onboarding.png … 10-journal.png
+├── introduction.mdx, quickstart.mdx, how-it-works.mdx, screen-tour.mdx, faq.mdx
+├── product/                  Using Fork (12 pages)
+├── principles/               Why Fork, epistemic honesty, privacy & security
+├── architecture/             Overview, stack, structure, lifecycle, routing, state…
+├── ai/                       Edge function, providers, prompting, schema, parsing…
+├── revenuecat/               Overview, setup, module, provider, paywall, limits, stores
+├── deploy/                   Env vars, app config, checklist, Supabase, Pages, EAS…
+├── contributing/             Workflow, testing, scripts, demo recording, extending
+├── api-reference/            HTTP API, data model, modules
+└── resources/                Roadmap, changelog, glossary, license
+```
+
+## Preview locally
+
+```bash
+npm i -g mint           # Mintlify CLI
+cd documentation
+mint dev                # http://localhost:3000
+```
+
+Useful checks before pushing:
+
+```bash
+mint broken-links       # finds links to pages that don't exist
+```
+
+## Deploy
+
+<Steps>
+  <Step title="Create the Mintlify project">
+    At [dashboard.mintlify.com](https://dashboard.mintlify.com), create a new project. The subdomain (e.g. `fork`) gives you `https://fork.mintlify.app`.
+  </Step>
+  <Step title="Connect GitHub">
+    Install the **Mintlify GitHub App** and give it access to `Nailer/fork`.
+  </Step>
+  <Step title="Point it at the docs folder">
+    **Settings → Git settings** → repository `Nailer/fork`, branch `main`, enable **Set up as monorepo**, path **`/documentation`**.
+  </Step>
+  <Step title="Publish">
+    Mintlify deploys immediately and again on every push to `main` that touches the docs.
+  </Step>
+  <Step title="(Optional) Custom domain">
+    **Settings → Custom domain**, e.g. `docs.yourdomain.com`, then add the CNAME record Mintlify shows.
+  </Step>
+</Steps>
+
+## Writing docs
+
+- Each page is MDX with `title`, `description` and an `icon` ([Lucide](https://lucide.dev/icons) names).
+- Add every new page to `navigation` in `docs.json`, or it won’t appear in the sidebar.
+- Use Mintlify components: `<Steps>`, `<Tabs>`, `<CardGroup>`, `<Accordion>`, `<Note>`, `<Warning>`, `<Tip>`, `<CodeGroup>`, and ` ```mermaid ` blocks for diagrams.
+- Keep facts in sync with the code: limits (`limits.ts`), dimension labels (`dimensions.ts`), error copy (`analyze.ts`), paywall copy (`paywall.tsx`).

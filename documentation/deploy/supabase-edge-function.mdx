@@ -1,0 +1,106 @@
+---
+title: "Deploy the AI proxy"
+description: "Deploy analyze-decision to Supabase, set provider secrets, and verify it end to end."
+icon: "server-cog"
+---
+
+## Prerequisites
+
+- A Supabase project. The current one is **Testing**, ref `gwruqdpbugqjrkyfvipa`, region `eu-west-2`.
+- The Supabase CLI (`npx supabase …` works without installing it globally).
+- A Gemini or Anthropic API key.
+
+## Deploy
+
+<Steps>
+  <Step title="Log in and link">
+    ```bash
+    npx supabase login
+    npx supabase link --project-ref <project-ref>   # optional; otherwise pass --project-ref each time
+    ```
+  </Step>
+  <Step title="Set secrets">
+    ```bash
+    # choose one provider (Gemini is selected automatically if its key exists)
+    npx supabase secrets set GEMINI_API_KEY=AIza... --project-ref <ref>
+    # or
+    npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-... --project-ref <ref>
+
+    # optional tuning
+    npx supabase secrets set FORK_AI_PROVIDER=gemini FORK_GEMINI_MODEL=gemini-2.5-flash --project-ref <ref>
+    npx supabase secrets set FORK_MODEL=claude-opus-5 FORK_EFFORT=low --project-ref <ref>
+    npx supabase secrets set FORK_RATE_LIMIT_PER_10_MIN=12 --project-ref <ref>
+    ```
+    Secrets take effect on the next cold start. Redeploying forces it.
+  </Step>
+  <Step title="Sync the shared schema">
+    ```bash
+    npm run sync:edge
+    ```
+    This is only needed if you changed `src/domain/schema.ts` or `parse.ts`. `npm test` tells you if it’s out of sync.
+  </Step>
+  <Step title="Deploy">
+    ```bash
+    npx supabase functions deploy analyze-decision --project-ref <ref>
+    ```
+    The CLI bundles `index.ts`, `prompt.ts`, `schema.ts`, `parse.ts` and `deno.json`. Keep JWT verification **on** (the default).
+  </Step>
+</Steps>
+
+## Verify
+
+```bash
+URL=https://<ref>.supabase.co/functions/v1/analyze-decision
+ANON=<anon key from Project Settings → API>
+
+# 1. Preflight
+curl -si -X OPTIONS $URL | head -1                          # HTTP/2 200
+
+# 2. Bad input
+curl -s $URL -H "Authorization: Bearer $ANON" -H "apikey: $ANON" \
+  -H "Content-Type: application/json" -d '{"description":"hi"}'
+# {"error":"bad_request","message":"Describe the decision in a little more detail."}
+
+# 3. Real request
+curl -s $URL -H "Authorization: Bearer $ANON" -H "apikey: $ANON" \
+  -H "Content-Type: application/json" \
+  -d '{"description":"Should I take a startup offer or stay at my stable job?","depth":"deep"}' \
+  | python3 -m json.tool | head -40
+```
+
+| Output | Meaning |
+|---|---|
+| `{"analysis":{…},"model":"…","provider":"…"}` | Working |
+| `{"error":"not_configured"}` (503) | The selected provider has no key, or the key is invalid |
+| `{"error":"billing"}` (503) | Out of credit or quota |
+| `{"code":401,…"Invalid JWT"}` | Wrong anon key in the request |
+| `404` | The function isn’t deployed under that name |
+
+Then run the app, type a decision and tap **Build my paths**.
+
+## Pointing the app at your own project
+
+```bash .env
+EXPO_PUBLIC_FORK_API_URL=https://<ref>.supabase.co/functions/v1/analyze-decision
+EXPO_PUBLIC_FORK_API_KEY=<anon key>
+```
+
+<Note>
+If you set a custom URL but no key, the app sends **no** auth header, and a JWT-verified function returns 401 (*Live analysis isn’t set up*). The built-in anon key is only used automatically for the project’s default URL.
+</Note>
+
+For GitHub Pages, update `EXPO_PUBLIC_FORK_API_URL` in `.github/workflows/deploy-web.yml` and add an `EXPO_PUBLIC_FORK_API_KEY` repository secret. For EAS, update `eas.json` → `build.base.env`.
+
+## Deploying without the CLI
+
+The function can also be deployed from the Supabase dashboard (**Edge Functions → Deploy a new function → via editor**) by pasting the five files, or through the Supabase MCP / Management API. Keep **Enforce JWT verification** enabled and upload `deno.json` as the import map.
+
+## Rolling back
+
+Every deploy creates a new version. To roll back, check out the earlier commit and redeploy:
+
+```bash
+git checkout <sha> -- supabase/functions/analyze-decision
+npx supabase functions deploy analyze-decision --project-ref <ref>
+git checkout main -- supabase/functions/analyze-decision
+```

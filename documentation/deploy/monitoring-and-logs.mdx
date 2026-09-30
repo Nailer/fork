@@ -1,0 +1,57 @@
+---
+title: "Monitoring and logs"
+description: "Where to look when something’s wrong: Supabase function logs, GitHub Actions, RevenueCat and the in-app diagnostics."
+icon: "activity"
+---
+
+## Supabase function logs
+
+**Dashboard → Edge Functions → analyze-decision → Logs / Invocations**
+
+| Log line | Meaning |
+|---|---|
+| `POST` with status `200` | Success |
+| `POST` with status `503` and no error line | Early `not_configured`: the provider key is missing |
+| `model request failed {provider, attempt, mode, message}` | The provider threw. The message says why (auth, quota, 429, timeout, schema). |
+| `invalid analysis {reason, detail, truncated}` | The model output failed validation. `detail` names the first bad field. |
+| `booted` / `shutdown` | Worker lifecycle (normal) |
+
+You can also query logs with SQL through the Supabase MCP or the Logs Explorer:
+
+```sql
+select timestamp, source, event_message
+from logs
+where source in ('function_edge_logs', 'function_logs')
+order by timestamp desc
+limit 50
+```
+
+<Note>
+**Snapshot from 29–30 September 2026:** the most recent invocations returned `503` with no model call (so no key was configured), and earlier ones returned `502` after `model api error 400` from the old Claude-only build. See the [Deploy checklist](/deploy/checklist).
+</Note>
+
+## In-app diagnostics
+
+**Settings → About** shows:
+
+- **Billing:** Test Store / production / not configured
+- **AI service:** Connected / Not configured. This only checks that a URL is configured, not that the backend works.
+
+In development, `[event] …` lines in the Metro or browser console trace the flow (see [Analytics events](/architecture/analytics-events)). RevenueCat logs at `WARN` level in dev.
+
+## GitHub Actions
+
+**Repo → Actions → Test & deploy web.** A red run means typecheck, lint, tests or the export failed, and Pages keeps serving the last good build.
+
+## RevenueCat
+
+- **Customers**: look up an anonymous app user ID, and see entitlements and transactions.
+- **Charts**: revenue, active subscriptions, conversion.
+- **Offerings**: confirm which offering is **Current**.
+
+## Model providers
+
+- **Google AI Studio / Cloud console**: quota and usage for `GEMINI_API_KEY`.
+- **Anthropic Console**: credit balance, usage and rate limits for `ANTHROPIC_API_KEY`.
+
+Consider billing alerts. The anon key is public, so anyone can call the function within the rate limit.

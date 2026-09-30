@@ -1,0 +1,80 @@
+---
+title: "Troubleshooting"
+description: "Symptoms, causes and fixes for the problems you’re most likely to hit."
+icon: "life-buoy"
+---
+
+## Live AI
+
+<AccordionGroup>
+  <Accordion title="“Live analysis isn’t set up”" icon="plug-zap">
+    The client got `not_configured`. One of:
+    - **The function has no key for its provider** (`503 not_configured`). Set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY`. **This is the current production state.**
+    - **The key is invalid** (a provider 401/403). Replace it.
+    - **Wrong or missing anon key in the app** (gateway 401/403). If you set a custom `EXPO_PUBLIC_FORK_API_URL`, also set `EXPO_PUBLIC_FORK_API_KEY`.
+    - **The function doesn’t exist at that URL** (404). Deploy it, or fix the URL.
+  </Accordion>
+  <Accordion title="“Fork’s AI is unavailable right now”" icon="battery-low">
+    `503 billing`: the provider reported insufficient credit or quota (`credit balance`, `RESOURCE_EXHAUSTED`, `quota`). Add Anthropic credit or check Gemini quota and billing.
+  </Accordion>
+  <Accordion title="“That took too long”" icon="timer">
+    A server `504`, a gateway `546`, or the 125 s client timer. Use Gemini Flash, keep `FORK_EFFORT=low` for Claude, and shorten very long descriptions.
+  </Accordion>
+  <Accordion title="“Fork couldn’t build clear paths”" icon="puzzle">
+    The model’s JSON failed validation even after retries. Check the logs for `invalid analysis` and its `detail`. If it keeps happening after a schema change, run `npm run sync:edge` and redeploy.
+  </Accordion>
+  <Accordion title="“Fork is busy”" icon="hourglass">
+    Rate limited: over `FORK_RATE_LIMIT_PER_10_MIN` from your IP, or the provider returned 429. Wait a few minutes.
+  </Accordion>
+  <Accordion title="“You’re offline” but I’m online (web)" icon="wifi-off">
+    Fixed in `6f1bf99` / `4e32c78`: the web now uses `navigator.onLine`. Hard-refresh to get the latest bundle. If you host elsewhere, make sure you deployed a build from after 28 Sep 2026.
+  </Accordion>
+</AccordionGroup>
+
+## Purchases
+
+<AccordionGroup>
+  <Accordion title="Price shows “Unavailable”" icon="tag">
+    There’s no current offering, or it has no packages. In RevenueCat, mark an offering **Current** and add a Monthly package.
+  </Accordion>
+  <Accordion title="“Purchases aren’t configured in this build.”" icon="ban">
+    No RevenueCat key resolved (billing mode `unconfigured`). With the current code this shouldn’t happen, because the built-in Test Store key is always the fallback (empty env values are ignored). If you removed `DEFAULT_RC_TEST_KEY` from `config.ts`, set `EXPO_PUBLIC_REVENUECAT_TEST_KEY`.
+  </Accordion>
+  <Accordion title="Bought Pro but no PRO badge" icon="badge-x">
+    The product isn’t attached to the entitlement, or the entitlement id differs from `EXPO_PUBLIC_REVENUECAT_ENTITLEMENT`. Fix it in RevenueCat, then **Restore purchases**.
+  </Accordion>
+  <Accordion title="Real purchases don’t work in Expo Go" icon="smartphone">
+    Expected. Expo Go only supports the Test Store. Make a development build with EAS.
+  </Accordion>
+</AccordionGroup>
+
+## Build and CI
+
+<AccordionGroup>
+  <Accordion title="Test “schema.ts matches src/domain” fails" icon="git-compare">
+    You edited `src/domain/schema.ts` or `parse.ts` without syncing. Run `npm run sync:edge` and commit both copies.
+  </Accordion>
+  <Accordion title="`npm ci` fails in CI" icon="package-x">
+    The lockfile is out of sync with `package.json`. Run `npm install` locally and commit `package-lock.json` (see commit `1c78f9e`).
+  </Accordion>
+  <Accordion title="Blank page or 404 for assets on GitHub Pages" icon="file-x">
+    The export must use `EXPO_BASE_URL=/fork`. `404.html` and `.nojekyll` must be in `dist/`. The workflow does both.
+  </Accordion>
+  <Accordion title="Metro serves old env values" icon="refresh-cw">
+    `EXPO_PUBLIC_*` values are inlined at bundle time. Restart with `npx expo start --clear`.
+  </Accordion>
+  <Accordion title="Library with native code doesn’t work in Expo Go" icon="blocks">
+    Make a development build: `npx eas-cli@latest build --profile development`.
+  </Accordion>
+</AccordionGroup>
+
+## Data
+
+<AccordionGroup>
+  <Accordion title="“This decision isn’t here anymore”" icon="file-question">
+    It was deleted, or it was an unsaved draft pruned when newer ones were created (only the 3 newest drafts are kept). Keep decisions you want to revisit.
+  </Accordion>
+  <Accordion title="Weekly limit didn’t reset on Monday" icon="calendar">
+    It’s a rolling 7 days per exploration, not a calendar week. The New decision banner names the unlock day.
+  </Accordion>
+</AccordionGroup>
