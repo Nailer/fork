@@ -1,0 +1,101 @@
+---
+title: "AI client"
+description: "analyzeDecision(): the app-side client for the edge function, with timeouts, retries, cancellation and typed errors."
+icon: "plug"
+---
+
+**File:** `src/services/ai/analyze.ts`
+
+```ts
+export async function analyzeDecision(
+  input: DecisionInput,
+  depth: AnalysisDepth,           // 'standard' | 'deep'
+  options?: {
+    endpoint?: { url?: string; key?: string };   // defaults to config.aiUrl / config.aiKey
+    signal?: AbortSignal;                        // cancel from the UI
+    timeoutMs?: number;                          // default 125_000
+    fetchImpl?: typeof fetch;                    // injectable for tests
+    retries?: number;                            // default 1
+  },
+): Promise<DecisionAnalysis>;
+```
+
+## Request
+
+```http
+POST {EXPO_PUBLIC_FORK_API_URL}
+Content-Type: application/json
+Authorization: Bearer {EXPO_PUBLIC_FORK_API_KEY}
+apikey: {EXPO_PUBLIC_FORK_API_KEY}
+
+{"description":"…","priorities":"…","budget":"…","timeHorizon":"…","depth":"standard"}
+```
+
+The auth headers are only sent when a key is configured. With no URL, the client throws `not_configured` without making a request.
+
+## Timeout and cancellation
+
+Each attempt creates its own `AbortController`:
+
+- a timer aborts it after `timeoutMs` and marks it `timedOut`,
+- the caller’s `signal` is forwarded, so aborting from the UI cancels the fetch.
+
+If `fetch` throws, the error becomes:
+
+| Condition | Kind |
+|---|---|
+| The caller’s signal aborted | `cancelled` |
+| The timeout fired | `timeout` |
+| Anything else (DNS, network, CORS) | `offline` |
+
+## Response handling
+
+1. Read the JSON body (ignore parse errors).
+2. If the status isn’t OK, map status and `error` code to a kind (next section).
+3. If it is OK, run `parseAnalysis(payload.analysis)`. If that fails → `invalid_output`.
+4. Cap scenarios with `maxPathsFor(depth)`. For `standard`, set `branches: undefined` on every scenario.
+
+## HTTP → error kind
+
+Checked in this order:
+
+| Condition | Kind |
+|---|---|
+| `status === 429` | `rate_limited` |
+| `error === 'timeout'`, or status `504` or `546` | `timeout` |
+| `error === 'billing'` | `unavailable` |
+| `error === 'not_configured'`, or status `401`, `403`, `404` | `not_configured` |
+| `error === 'refused'` | `refused` |
+| `status === 400` | `bad_request` |
+| `error === 'invalid_output'` | `invalid_output` |
+| anything else | `server` (message `HTTP <status>`) |
+
+<Note>`401`/`403` come from the **Supabase gateway** when the anon key is missing or wrong. `404` means the function doesn’t exist at that URL. All three are configuration problems, not user problems.</Note>
+
+## Retries
+
+```ts
+const RETRYABLE: AnalysisErrorKind[] = ['invalid_output', 'server'];
+```
+
+The client retries **once** (by default) and only for these two kinds, and never after the caller aborts. **Timeouts are not retried**: a second full-length attempt would double an already long wait.
+
+## Errors
+
+```ts
+export type AnalysisErrorKind =
+  | 'not_configured' | 'unavailable' | 'offline' | 'timeout' | 'rate_limited'
+  | 'refused' | 'bad_request' | 'invalid_output' | 'server' | 'cancelled';
+
+export class AnalysisError extends Error {
+  constructor(public kind: AnalysisErrorKind, message?: string);
+}
+
+export const ERROR_COPY: Record<AnalysisErrorKind, { title: string; body: string }>;
+```
+
+The analysis screen reads `ERROR_COPY[kind]`. See [Error handling](/ai/errors) for the full table.
+
+## Tests
+
+`analyze.test.ts` covers: `not_configured` with no endpoint; headers, body and depth; stripping branches and capping paths for standard; retry-then-success on malformed output; `invalid_output` after the retry; every HTTP mapping without retrying non-transient errors; network failure → `offline`; slow requests → `timeout`; caller abort → `cancelled`.

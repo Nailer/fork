@@ -1,0 +1,110 @@
+---
+title: "Edge function"
+description: "A walkthrough of supabase/functions/analyze-decision/index.ts: the Deno handler that proxies Fork’s AI requests."
+icon: "server"
+---
+
+**Location:** `supabase/functions/analyze-decision/`
+**Runtime:** Supabase Edge Functions (Deno), `verify_jwt: true`
+**Endpoint:** `POST https://<project-ref>.supabase.co/functions/v1/analyze-decision`
+
+## Files
+
+| File | Role |
+|---|---|
+| `index.ts` | `Deno.serve` handler, provider clients, retries and error mapping |
+| `prompt.ts` | `SYSTEM_PROMPT`, `buildUserPrompt()`, `OUTPUT_SCHEMA`, `validateRequest()`. Shared with the app’s tests, so it has no Deno or RN imports. |
+| `schema.ts` | **Generated** copy of `src/domain/schema.ts` |
+| `parse.ts` | **Generated** copy of `src/domain/parse.ts` |
+| `deno.json` | Import map: `zod` → `npm:zod@4.6.5`, `@anthropic-ai/sdk` → `npm:@anthropic-ai/sdk@0.128.0` |
+
+## Configuration (environment)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `GEMINI_API_KEY` | — | Enables the Gemini provider, and **selects it** when `FORK_AI_PROVIDER` is unset |
+| `ANTHROPIC_API_KEY` | — | Enables the Claude provider |
+| `FORK_AI_PROVIDER` | `gemini` if `GEMINI_API_KEY` is set, otherwise `anthropic` | Forces a provider |
+| `FORK_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model id |
+| `FORK_MODEL` | `claude-opus-5` | Claude model id |
+| `FORK_EFFORT` | `low` | Claude `output_config.effort` (`low` · `medium` · `high`) |
+| `FORK_RATE_LIMIT_PER_10_MIN` | `12` | Requests per IP per 10-minute window, per instance |
+
+## Handler, step by step
+
+<Steps>
+  <Step title="CORS and method">
+    `OPTIONS` → `200 ok` with CORS headers. Anything other than `POST` → `405 {error:"method_not_allowed"}`.
+    ```ts
+    const CORS = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    };
+    ```
+  </Step>
+  <Step title="Provider configured?">
+    If the selected provider’s key is missing → `503 {error:"not_configured"}`. This check runs **before** reading the body, so it’s cheap and never logged.
+  </Step>
+  <Step title="Rate limit">
+    The IP is the first `x-forwarded-for` entry. The function keeps a sliding window of timestamps per IP in a module-level `Map`. Over the limit → `429 {error:"rate_limited"}`.
+  </Step>
+  <Step title="Parse and validate the body">
+    Invalid JSON → `400 bad_request "Body must be JSON."`. Then `validateRequest()`:
+    - `description` is trimmed and must be **8–2,000** characters,
+    - `priorities`, `budget` and `timeHorizon` are optional strings, trimmed and cut to **240**, and dropped if empty,
+    - `depth` is `'deep'` only if exactly `"deep"`, otherwise `'standard'`.
+  </Step>
+  <Step title="Generate (up to two attempts, 105 s budget)">
+    ```ts
+    const BUDGET_MS = 105_000;
+    const MIN_RETRY_MS = 45_000;
+    let mode: Mode = 'structured';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const remaining = BUDGET_MS - (Date.now() - started);
+      if (attempt > 0 && remaining < MIN_RETRY_MS) break;
+      const result = await generate(userPrompt, remaining, mode);
+      ...
+    }
+    ```
+    - Attempt 1 uses **structured** mode: a JSON schema is enforced by the provider.
+    - If the output fails validation, or the provider rejects the schema (`400`, `INVALID_ARGUMENT`, `schema`…), attempt 2 uses **plain** mode: the schema is embedded in the prompt and the model is asked for *only one JSON object*.
+    - Attempt 2 runs only if at least 45 s of the budget remain.
+  </Step>
+  <Step title="Respond">
+    - Model refusal → `422 refused`
+    - Valid → `200 { analysis, model, provider }`
+    - Out of time → `504 timeout`
+    - Otherwise → `502 invalid_output`
+  </Step>
+</Steps>
+
+## Error classification
+
+When a provider call throws, the message (truncated to 500 characters) is logged and matched in this order:
+
+| Pattern in the error message | Response |
+|---|---|
+| `provider_not_configured`, `401`, `403`, `API_KEY_INVALID`, `invalid api key` | `503 not_configured` |
+| `credit balance`, `billing`, `purchase credits`, `RESOURCE_EXHAUSTED`, `quota` | `503 billing` |
+| `429` | `429 rate_limited` |
+| `AbortError`, `aborted`, `timeout` | `504 timeout` |
+| (structured mode) `400`, `INVALID_ARGUMENT`, `schema`, `responseJsonSchema` | switch to plain mode and retry |
+| anything else on the 2nd attempt | `502 upstream` |
+
+## Logging
+
+The function logs **no decision text**. It logs:
+
+```ts
+console.warn('invalid analysis', { provider, attempt, reason, detail, truncated });
+console.error('model request failed', { provider, attempt, mode, message });
+```
+
+Read these in the Supabase dashboard (**Edge Functions → analyze-decision → Logs**). See [Monitoring and logs](/deploy/monitoring-and-logs).
+
+## Limits of the runtime
+
+- The rate-limit `Map` lives in memory **per worker instance**, and workers are recycled. Treat it as protection against accidental loops.
+- Supabase kills workers that exceed their wall-clock limit, and the gateway returns `546`. The 105 s budget is designed to stay under it.
+- `@anthropic-ai/sdk` is created with `maxRetries: 0` so the SDK doesn’t stack hidden retries on top of the function’s own.

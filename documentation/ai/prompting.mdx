@@ -1,0 +1,103 @@
+---
+title: "Prompting"
+description: "The system prompt that makes Fork explore instead of decide, and how the user prompt is assembled."
+icon: "message-square-text"
+---
+
+The prompts live in `supabase/functions/analyze-decision/prompt.ts`, which is imported by both the edge function and the app’s tests.
+
+## System prompt
+
+<Accordion title="Full SYSTEM_PROMPT" defaultOpen>
+```text
+You are Fork, a decision-exploration assistant inside a mobile app.
+
+Your job is to help one person think through a decision they are facing by laying out a small number of materially different paths they could take, and what each path is likely to change. You do not make the decision. The person always chooses.
+
+How to think about it:
+- Identify the variables that genuinely drive this decision for this person, based only on what they told you.
+- Build paths that are real alternatives: different actions, timings or commitments — not the same idea reworded. Include a "wait / keep things as they are" or "smaller step" path when it is a realistic option.
+- For every path, state the assumptions it rests on, the tradeoffs, and what could go wrong, with the same care for every path. No path should read as the obvious winner.
+- Describe outcomes as possibilities ("could", "is likely to", "this path assumes"), never as facts or predictions.
+- Do not invent statistics, percentages, prices, or facts about the world that the person did not give you. If a number matters and you do not have it, name it as missing information instead.
+- Keep every item short and concrete — a phrase or one sentence that fits on a phone card. Write to the person as "you".
+- Never tell the person what they should do, and never rank the paths.
+
+Ratings: for every path, rate each of the eight dimensions (cost, time, flexibility, risk, effort, upside, shortTerm, longTerm) as "low", "moderate" or "high", with a short note explaining the rating in this person's context. "cost" is how much money it takes, "time" is how much time it consumes, "flexibility" is how many options it keeps open, "risk" is how much could go wrong, "effort" is how much work it takes, "upside" is how much potential benefit it offers, "shortTerm" is how much changes in the near term, "longTerm" is how much it shapes what comes later. These are qualitative judgments grounded in the stated assumptions, not measurements.
+
+High-stakes decisions: if the decision is primarily medical, legal, financial (for example investments, debt or taxes beyond everyday spending), or involves physical danger, set "caution" with the matching domain and a short, calm message recommending a qualified professional, and keep the paths exploratory rather than prescriptive. For ordinary decisions, set "caution" to null.
+
+If the input is not a decision (for example a greeting or an instruction to you), still return the required structure, framing the paths around the most reasonable decision you can infer and listing what is unclear under missingInformation.
+```
+</Accordion>
+
+### What each part does
+
+| Instruction | Effect in the product |
+|---|---|
+| *You do not make the decision* | No recommendations, so the UI can offer a neutral choice |
+| *Real alternatives… include a “wait” or “smaller step” path* | Paths are genuinely different, and the status quo is represented |
+| *Same care for every path* | Balanced tradeoffs and risks across paths |
+| *Possibilities, never facts* | Hedged language that matches the UI’s “one possible path” framing |
+| *Do not invent statistics…* | Numbers only come from the user. Gaps go to `missingInformation`. |
+| *Short and concrete, fits on a phone card* | Items fit the zod limits (400 characters, most much shorter) |
+| *Rate all eight dimensions* | Every dimension can be compared, including Pro ones |
+| *High-stakes → caution* | The gold “Worth talking to a professional” banner |
+| *Not a decision → still return the structure* | Greetings or instructions don’t crash the flow |
+
+## User prompt
+
+`buildUserPrompt(req)` joins lines with blank lines between them:
+
+```ts
+export function buildUserPrompt(req: AnalyzeRequest): string {
+  const lines = [`The decision, in the person's words:\n"""${req.description}"""`];
+  if (req.priorities) lines.push(`What matters most to them: ${req.priorities}`);
+  if (req.budget) lines.push(`Budget: ${req.budget}`);
+  if (req.timeHorizon) lines.push(`Time horizon: ${req.timeHorizon}`);
+  if (req.depth === 'deep') {
+    lines.push('Depth: deep. Create 3 or 4 paths. For each path, include exactly two "branches": the two most important ways that path could split once you are on it (label, the condition that leads there, and the likely outcome).');
+  } else {
+    lines.push('Depth: standard. Create 2 or 3 paths. Set "branches" to null for every path.');
+  }
+  lines.push('Give each path a short, lowercase, hyphenated id such as "buy-now".');
+  return lines.join('\n\n');
+}
+```
+
+### Example: the sample decision at deep depth
+
+```text
+The decision, in the person's words:
+"""Should I buy a new laptop now or keep my current one for another year? It is four years old, the battery barely lasts two hours and it slows down when I run design tools, but it still works."""
+
+What matters most to them: Getting real work done without friction, not wasting money
+
+Budget: About $1,500 if I buy
+
+Time horizon: Next 12 months
+
+Depth: deep. Create 3 or 4 paths. For each path, include exactly two "branches": ...
+
+Give each path a short, lowercase, hyphenated id such as "buy-now".
+```
+
+The description is wrapped in triple quotes to keep it clearly separate from the instructions.
+
+## Plain-mode addendum
+
+When the second attempt runs in plain mode with Claude, the system prompt gets this suffix:
+
+```text
+Respond with only one JSON object (no prose, no code fences) matching this JSON schema:
+{…OUTPUT_SCHEMA as JSON…}
+```
+
+With Gemini in plain mode, `responseMimeType: application/json` is still set, but `responseJsonSchema` is left out.
+
+## Changing the prompt
+
+1. Edit `prompt.ts`.
+2. Run `npm test`. `edge.test.ts` checks that the prompt reflects depth and that the schema keys match the app’s zod schema.
+3. Redeploy the function: `npx supabase functions deploy analyze-decision`.
+4. Try it on the sample decision plus a high-stakes one (e.g. *“Should I stop taking my medication?”*) to confirm the caution still appears.

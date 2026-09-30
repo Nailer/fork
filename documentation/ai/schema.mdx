@@ -1,0 +1,111 @@
+---
+title: "Schema"
+description: "The single source of truth for what the AI is allowed to return, and how the zod and JSON schemas stay in sync."
+icon: "braces"
+---
+
+`src/domain/schema.ts` defines, with **zod 4**, exactly what an analysis may contain. Nothing reaches the UI without passing it.
+
+## The zod schema
+
+```ts src/domain/schema.ts
+export const DIMENSION_KEYS = ['cost', 'time', 'flexibility', 'risk', 'effort', 'upside', 'shortTerm', 'longTerm'] as const;
+export const LEVELS = ['low', 'moderate', 'high'] as const;
+
+const text = z.string().trim().min(1).max(400);
+const shortText = z.string().trim().min(1).max(90);
+const list = (max: number) => z.array(text).min(1).max(max);
+
+export const RatingSchema = z.object({
+  dimension: z.enum(DIMENSION_KEYS),
+  level: z.enum(LEVELS),
+  note: z.string().trim().min(1).max(160),
+});
+
+export const BranchSchema = z.object({ label: shortText, condition: text, outcome: text });
+
+export const ScenarioSchema = z.object({
+  id: z.string().trim().min(1).max(40),
+  title: shortText,
+  summary: text,
+  immediateEffects: list(5),
+  longerTermConsiderations: list(5),
+  benefits: list(5),
+  tradeoffs: list(5),
+  risks: list(5),
+  assumptions: list(5),
+  uncertaintyLevel: z.enum(LEVELS),
+  uncertainty: list(4),
+  importantVariables: list(5),
+  whatWouldChange: list(4),
+  questionsToConsider: list(4),
+  ratings: z.array(RatingSchema).min(1).max(DIMENSION_KEYS.length),
+  branches: z.array(BranchSchema).max(2).optional(),   // Fork Pro (deep)
+});
+
+export const VariableSchema = z.object({ name: shortText, why: text });
+
+export const CautionSchema = z.object({
+  domain: z.enum(['medical', 'legal', 'financial', 'safety', 'other']),
+  message: text,
+});
+
+export const DecisionAnalysisSchema = z.object({
+  decisionTitle: shortText,
+  summary: text,
+  variables: z.array(VariableSchema).min(1).max(6),
+  scenarios: z.array(ScenarioSchema).min(2).max(4),
+  comparisonDimensions: z.array(z.enum(DIMENSION_KEYS)).min(1).max(DIMENSION_KEYS.length),
+  questions: list(5),
+  assumptions: list(5),
+  missingInformation: z.array(text).max(4),
+  caution: CautionSchema.nullable(),
+});
+```
+
+Field-by-field reference: [DecisionAnalysis](/api-reference/decision-analysis) and [Scenario](/api-reference/scenario).
+
+## The JSON schema sent to the model
+
+Providers need JSON Schema, not zod. `OUTPUT_SCHEMA` in `prompt.ts` is hand-written to mirror the zod shape:
+
+- every object sets `required` to **all** of its keys and `additionalProperties: false`,
+- enums match `DIMENSION_KEYS`, `LEVELS` and the caution domains,
+- `branches` and `caution` are `anyOf: [ …, { type: 'null' } ]`, so the model always emits the key,
+- **length limits are not in the JSON schema.** They’re enforced afterwards by zod (after [normalisation](/ai/parsing-and-recovery) trims lists that are too long).
+
+```ts
+const obj = (properties: Record<string, unknown>) => ({
+  type: 'object', properties, required: Object.keys(properties), additionalProperties: false,
+});
+```
+
+## Keeping client and server in sync
+
+There are two mechanisms, and both are enforced by tests.
+
+<Steps>
+  <Step title="Generated copies">
+    `npm run sync:edge` runs `scripts/sync-edge-schema.mjs`, which copies `src/domain/schema.ts` and `parse.ts` into the function folder. It adds a `// GENERATED … do not edit.` header and rewrites `from './schema'` to `from './schema.ts'` for Deno.
+  </Step>
+  <Step title="Test: generated files match">
+    `edge.test.ts` reads both copies and fails if the edge version isn’t exactly `HEADER + source`.
+  </Step>
+  <Step title="Test: JSON schema keys match zod keys">
+    The same test checks that `OUTPUT_SCHEMA.required` equals the keys of `DecisionAnalysisSchema.shape`, and that the scenario item’s `required` equals the keys of `ScenarioSchema.shape`.
+  </Step>
+</Steps>
+
+## Changing the schema: checklist
+
+- [ ] Edit `src/domain/schema.ts` (and `types.ts` or `dimensions.ts` if needed).
+- [ ] Update `OUTPUT_SCHEMA` in `prompt.ts` to match.
+- [ ] Update `LIST_LIMITS` in `parse.ts` if you added a list field to scenarios.
+- [ ] Update `SYSTEM_PROMPT` if the model needs to know what a new field means.
+- [ ] `npm run sync:edge`
+- [ ] Update `src/domain/sample.ts` so the sample still validates (`parse.test.ts` checks it).
+- [ ] `npm test && npm run typecheck`
+- [ ] Redeploy the edge function.
+- [ ] If the persisted `Decision` shape changes, bump the store `version` and add a migration. See [State](/architecture/state).
+
+<Warning>Deploy the new function **before** shipping a client that expects new required fields. Otherwise existing clients will get `invalid_output`.</Warning>

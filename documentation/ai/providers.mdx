@@ -1,0 +1,80 @@
+---
+title: "Providers"
+description: "Google Gemini and Anthropic Claude: how the edge function picks one and how each is called."
+icon: "cpu"
+---
+
+The edge function supports two model providers. Exactly **one** is used per deployment. There’s no automatic cross-provider failover at request time.
+
+## Selection
+
+```ts
+const PROVIDER = (
+  Deno.env.get('FORK_AI_PROVIDER') ??
+  (Deno.env.get('GEMINI_API_KEY') ? 'gemini' : 'anthropic')
+).toLowerCase();
+```
+
+| Secrets set | `FORK_AI_PROVIDER` | Provider used |
+|---|---|---|
+| `GEMINI_API_KEY` only | unset | **Gemini** |
+| `ANTHROPIC_API_KEY` only | unset | **Claude** |
+| both | unset | **Gemini** |
+| both | `anthropic` | **Claude** |
+| neither | any | Every request → `503 not_configured` |
+
+<Tip>
+“Gemini with Anthropic fallback” in the commit history means **configuration-level** fallback: if you don’t set a Gemini key, the function uses Claude. To switch providers, set or unset secrets. No code change is needed.
+</Tip>
+
+## Gemini
+
+| | |
+|---|---|
+| Default model | `gemini-2.5-flash` (`FORK_GEMINI_MODEL`) |
+| Endpoint | `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` |
+| Auth | `x-goog-api-key: $GEMINI_API_KEY` |
+| System prompt | `systemInstruction.parts[0].text = SYSTEM_PROMPT` |
+| Generation config | `responseMimeType: application/json`, `temperature: 0.35`, `maxOutputTokens: 8192` |
+| Structured mode | adds `responseJsonSchema: OUTPUT_SCHEMA` |
+| Refusal | `finishReason` in `SAFETY`, `BLOCKLIST`, `PROHIBITED_CONTENT`, `SPII` → `422 refused` |
+| Truncation | `finishReason === 'MAX_TOKENS'` is logged as `truncated` |
+| Timeout | An `AbortController` set to the remaining budget (min 1 s) |
+
+Get a key at [Google AI Studio](https://aistudio.google.com/apikey).
+
+## Claude
+
+| | |
+|---|---|
+| Default model | `claude-opus-5` (`FORK_MODEL`) |
+| SDK | `@anthropic-ai/sdk@0.128.0`, `maxRetries: 0` |
+| Structured mode | `anthropic.beta.messages.create` with `betas: ['server-side-fallback-2026-07-01']`, `fallbacks: 'default'`, `thinking: { type: 'adaptive' }`, `output_config: { effort, format: { type: 'json_schema', schema: OUTPUT_SCHEMA } }` |
+| Plain mode | `anthropic.messages.create` with `output_config: { effort }`, and the schema appended to the system prompt |
+| `max_tokens` | 12,000 |
+| Effort | `FORK_EFFORT`, default `low` (faster, within the time budget) |
+| Refusal | `stop_reason === 'refusal'` → `422 refused` |
+| Truncation | `stop_reason === 'max_tokens'` is logged |
+
+Get a key at [console.anthropic.com](https://console.anthropic.com). The account needs credit. *“Credit balance is too low”* maps to `503 billing`, which the app shows as *“Fork’s AI is unavailable right now”*.
+
+## Choosing between them
+
+| Consideration | Gemini 2.5 Flash | Claude Opus 5 |
+|---|---|---|
+| Latency | Usually faster | Slower, especially at higher effort |
+| Cost | Lower | Higher |
+| Free tier | Yes, with rate limits (AI Studio) | No, needs prepaid credit |
+| Nuance of tradeoffs | Good | Very strong |
+
+For a hackathon demo or a free app, Gemini keeps latency and cost down. For the richest paths, set `FORK_AI_PROVIDER=anthropic` and consider `FORK_EFFORT=medium`, keeping an eye on the 105 s budget.
+
+## Response metadata
+
+A successful response includes which provider and model produced it:
+
+```json
+{ "analysis": { "...": "..." }, "model": "gemini-2.5-flash", "provider": "gemini" }
+```
+
+The app ignores these fields today. They’re useful for debugging with `curl`.

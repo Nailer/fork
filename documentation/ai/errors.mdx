@@ -1,0 +1,42 @@
+---
+title: "Error handling"
+description: "The full error map: server error codes, client error kinds, user-facing copy, and what to do about each."
+icon: "triangle-alert"
+---
+
+## End-to-end map
+
+| Server response | Client kind | User sees | Retry offered | Likely cause | Fix |
+|---|---|---|---|---|---|
+| `503 not_configured` | `not_configured` | Live analysis isn’t set up | No, offers the sample | Missing or invalid model key | Set `GEMINI_API_KEY` or `ANTHROPIC_API_KEY` |
+| `401` / `403` (gateway) | `not_configured` | Live analysis isn’t set up | No | Wrong or missing anon key in the app | Check `EXPO_PUBLIC_FORK_API_KEY` |
+| `404` | `not_configured` | Live analysis isn’t set up | No | Function not deployed, or wrong URL | Deploy it, check `EXPO_PUBLIC_FORK_API_URL` |
+| `503 billing` | `unavailable` | Fork’s AI is unavailable right now | No, offers the sample | Out of credit or quota | Add credit (Anthropic) or raise the quota or billing (Gemini) |
+| `429 rate_limited` | `rate_limited` | Fork is busy | Yes | Over 12 requests / 10 min from one IP, or a provider 429 | Wait, or raise `FORK_RATE_LIMIT_PER_10_MIN` |
+| `504 timeout` / `546` | `timeout` | That took too long | Yes | Slow model, or effort too high | Use Gemini Flash or lower `FORK_EFFORT` |
+| `422 refused` | `refused` | Fork can’t explore this one | No | Provider safety refusal | Rephrase the decision |
+| `400 bad_request` | `bad_request` | Add a little more detail | No | Description under 8 characters, over 2,000, or not JSON | Edit the description |
+| `502 invalid_output` | `invalid_output` | Fork couldn’t build clear paths | Yes (and the client retried once already) | The model returned JSON that failed validation twice | Usually transient. Check the logs for `detail`. |
+| `502 upstream` | `server` | Something went wrong | Yes | Other provider error | Check the logs |
+| `405 method_not_allowed` | `server` | Something went wrong | Yes | Not a POST | A client bug |
+| fetch threw | `offline` | You’re offline | Yes | No network, DNS or CORS | Check the connection |
+| client timer | `timeout` | That took too long | Yes | Over 125 s | As above |
+| user cancelled | `cancelled` | *(nothing, the screen closes)* | — | — | — |
+
+## Response body format
+
+Every non-2xx response from the function has the same shape:
+
+```json
+{ "error": "not_configured", "message": "The AI service is not configured yet." }
+```
+
+The app relies on `error`. `message` is for humans reading `curl` output.
+
+## Principles
+
+1. **Stable codes, not strings.** The client branches on `error`, never on the message text.
+2. **No raw errors in the UI.** Stack traces and provider messages go to logs only.
+3. **Every error has a next step.** *Try again*, *Explore the sample decision* or *Edit description*.
+4. **Failures are free.** Only successful explorations count against the Free allowance.
+5. **The description survives.** *Edit description* returns to the composer with your text intact.
