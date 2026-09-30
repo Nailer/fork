@@ -1,0 +1,37 @@
+---
+title: "Domain logic"
+description: "The pure, framework-free modules in src/domain that define what a decision is and how it behaves."
+icon: "brain-circuit"
+---
+
+`src/domain/` holds Fork’s business rules as **pure TypeScript** with no React, React Native or Expo imports. That makes it easy to unit test, and `schema.ts` and `parse.ts` are copied verbatim into the Deno edge function.
+
+| Module | Exports | Reference |
+|---|---|---|
+| `schema.ts` | `DecisionAnalysisSchema`, `ScenarioSchema`, `RatingSchema`, `BranchSchema`, `VariableSchema`, `CautionSchema`, `DIMENSION_KEYS`, `LEVELS` + inferred types | [Schema](/ai/schema) |
+| `parse.ts` | `extractJson`, `normalizeAnalysis`, `parseAnalysis`, `ParseResult` | [Parsing and recovery](/ai/parsing-and-recovery) |
+| `types.ts` | `Decision`, `DecisionInput`, `AnalysisDepth`, `DecisionSource`, `ChosenPath`, `PATH_LETTERS` | [Decision record](/api-reference/decision-record) |
+| `limits.ts` | Free/Pro constants, `recentExplorations`, `remainingExplorations`, `canExplore`, `nextFreeSlotAt`, `canSave`, `depthFor`, `maxPathsFor` | [limits](/api-reference/modules/limits) |
+| `dimensions.ts` | `DIMENSIONS`, `FREE_DIMENSIONS`, `ALL_DIMENSIONS`, `LEVEL_LABEL`, `LEVEL_VALUE` | [Dimensions and levels](/api-reference/dimensions-and-levels) |
+| `compare.ts` | `ratingFor`, `spreadOf`, `buildComparison`, `availableDimensions`, `toggleDimension`, `keyDifferences` | [compare](/api-reference/modules/compare) |
+| `sample.ts` | `SAMPLE_INPUT`, `SAMPLE_ANALYSIS` | [Sample decision](/product/sample-decision) |
+
+## Why keep it pure
+
+- **Testability.** Five of the seven test suites exercise domain code directly, with no rendering.
+- **Server parity.** The server validates with *exactly* the same rules as the client (`npm run sync:edge`).
+- **Clarity.** A screen that needs “can this user save?” calls `canSave(savedCount, isPro, alreadySaved)`. The rule lives in one place.
+
+## Features: flows that span screens
+
+`src/features/` holds two small orchestration helpers that are used from more than one screen and touch the router or stores:
+
+```ts
+// src/features/explore.ts
+export const MIN_DESCRIPTION = 8;
+export function cleanInput(input: DecisionInput): DecisionInput;
+export function startExploration(raw: DecisionInput, isPro: boolean): boolean;
+
+// src/features/openSample.ts
+export function openSample(): void;   // creates a 'sample' decision (depth 'deep') and opens it
+```

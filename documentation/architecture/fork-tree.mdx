@@ -1,0 +1,85 @@
+---
+title: "The fork tree"
+description: "How the signature SVG visualization draws itself identically on iOS, Android and web."
+icon: "git-branch"
+---
+
+`ForkTree` (`src/components/ForkTree.tsx`) is the product’s visual centre. It appears on onboarding, Home (a scaled-down preview), the analysis screen (label-less and regrowing) and the fork screen (interactive).
+
+## Props
+
+```ts
+type TreePath = { id: string; title: string; twigs?: string[] };
+
+type Props = {
+  width: number;
+  paths: TreePath[];                 // 1–4 paths
+  progress: number;                  // 0 → 1 animation progress (from useProgress)
+  activeId?: string | null;          // selected path
+  onSelect?: (id: string) => void;   // node tap
+  showTwigs?: boolean;               // draw 2 sub-branches per path (Pro + deep)
+  bare?: boolean;                    // hide labels (analysis animation, Home preview)
+};
+```
+
+It’s wrapped in `React.memo`.
+
+## Geometry
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `ROOT_Y` | 44 | The decision (root) node |
+| `SPLIT_Y` | 100 | Where the trunk splits |
+| `NODE_Y` | 188 | Path nodes |
+| `NODE_R` | 20 | Node radius |
+| `TWIG_END` | 238 | Where sub-branch twigs end |
+
+Nodes are spread evenly between a side padding of `max(46, width × 0.13)`. Each branch is a cubic Bézier from the split point down to its node. Height is `treeHeight(showTwigs, bare)`.
+
+## Drawing without a native animation library
+
+Branches are “drawn” with the stroke-dash trick:
+
+```ts
+const drawn = (len: number, t: number) => ({
+  strokeDasharray: `${len} ${len}`,
+  strokeDashoffset: len * (1 - t),
+});
+```
+
+`len` is the Bézier’s **control-polygon length** plus 2. That’s always at least the curve’s real length, so the dash fully covers it at `t = 1`.
+
+The `progress` value comes from `useProgress(duration, key, delay)`, a `requestAnimationFrame` clock with ease-out-cubic. Each part of the tree maps that progress into its own sub-range with `stage(t, from, to)`:
+
+| Part | Progress range |
+|---|---|
+| Root glow and node | `0 → 0.2` (5× speed) |
+| Trunk | `0 → 0.26` |
+| Branch *i* | `0.2 + 0.07i → 0.6 + 0.07i` |
+| Node *i* blooms | `start + 0.32 → start + 0.5` |
+| Label *i* rises | `start + 0.4 → start + 0.62` |
+| Twigs | `0.78 → 1` |
+
+Because this is plain SVG attributes updated from JavaScript, **the animation is identical on iOS, Android and web**.
+
+## Visual details
+
+- **Gradients**: each branch uses a linear gradient from ivory at the split to the path colour at 55%. Each node has a radial glow.
+- **Unique gradient IDs**: IDs are suffixed with `useId()`. On the web several trees can be in the DOM at once, and `url(#g0)` would otherwise resolve to another tree’s gradient.
+- **Selection**: the active branch’s stroke goes from 3 to 4.5, inactive branches drop to 28% opacity, and a `Halo` (an `Animated.View` ring on the native driver) pulses from scale 1 → 1.9 while fading.
+- **Letters** A–D are drawn inside the nodes in the background colour.
+
+## Interaction and accessibility
+
+- Each path has an invisible `Pressable` hit area over its node and label, with `accessibilityRole="button"` and `accessibilityState={{ selected }}`.
+- The container is labelled *“Your decision splits into N paths”* with role `image`.
+- With **Reduce Motion** on, `useProgress` returns `1` immediately, and the halo is a static ring at 1.35× scale and 40% opacity.
+
+## Reuse
+
+| Screen | Configuration |
+|---|---|
+| Onboarding page 1 | 3 sample paths, labels on |
+| Home sample card | `bare`, width 240, then scaled down |
+| Analysing | `bare`, three placeholder paths, `key` changes every 2.6 s so it regrows |
+| Fork | Real paths, `activeId`, `onSelect`, `showTwigs = isPro && hasBranches` |

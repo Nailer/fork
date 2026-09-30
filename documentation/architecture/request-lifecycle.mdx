@@ -1,0 +1,107 @@
+---
+title: "Request lifecycle"
+description: "One exploration traced end to end, from the tap on Build my paths to a rendered fork."
+icon: "route"
+---
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant H as home.tsx / new.tsx
+  participant X as features/explore.ts
+  participant P as store/pending.ts
+  participant A as analyzing.tsx
+  participant C as services/ai/analyze.ts
+  participant E as analyze-decision (Deno)
+  participant M as Gemini / Claude
+  participant S as useForkStore
+
+  U->>H: Build my paths
+  H->>X: startExploration(draft, isPro)
+  X->>X: cleanInput() · length ≥ 8 · canExplore()
+  alt out of free explorations
+    X-->>U: router.push('/paywall?reason=limit')
+  end
+  X->>P: setPending(input, depthFor(isPro))
+  X->>A: router.push('/analyzing')
+  A->>C: analyzeDecision(input, depth, {signal})
+  C->>E: POST {description, priorities?, budget?, timeHorizon?, depth}<br/>Authorization: Bearer anon · apikey: anon
+  E->>E: provider configured? · rate limit · validateRequest()
+  E->>M: SYSTEM_PROMPT + buildUserPrompt() + OUTPUT_SCHEMA
+  M-->>E: JSON text
+  E->>E: parseAnalysis() (retry once in plain-JSON mode if invalid)
+  E-->>C: 200 {analysis, model, provider}
+  C->>C: parseAnalysis() again · cap paths · strip branches if standard
+  C-->>A: DecisionAnalysis
+  A->>S: createDecision({input, analysis, source:'ai', depth})
+  A->>S: recordExploration()
+  A->>U: “Your fork is ready.” → /decision/{id}
+```
+
+## Step by step
+
+### 1. Input is cleaned and gated
+
+`startExploration()` in `src/features/explore.ts`:
+
+```ts
+export const MIN_DESCRIPTION = 8;
+
+export function startExploration(raw: DecisionInput, isPro: boolean) {
+  const input = cleanInput(raw);                      // trim, drop empty optionals
+  if (input.description.length < MIN_DESCRIPTION) return false;
+  if (!canExplore(useForkStore.getState().explorations, isPro)) {
+    router.push({ pathname: '/paywall', params: { reason: 'limit' } });
+    return false;
+  }
+  track('decision_started', { withContext: Boolean(input.priorities || input.budget || input.timeHorizon) });
+  usePending.getState().setPending(input, depthFor(isPro));
+  router.push('/analyzing');
+  return true;
+}
+```
+
+The request is handed over through an **in-memory** zustand store (`usePending`), not route params. That keeps the description out of URLs and browser history.
+
+### 2. The client calls the proxy
+
+`analyzeDecision()` (see [AI client](/ai/client)) posts JSON with the public anon key in both `Authorization` and `apikey` headers, a 125 s timeout, and cancellation through an `AbortSignal`.
+
+### 3. The proxy validates, generates and re-validates
+
+See [Edge function](/ai/edge-function). In short: CORS preflight → provider key check → IP rate limit → body validation → up to two model attempts within a 105 s budget → `parseAnalysis()` → JSON response with a stable error code on failure.
+
+### 4. The client trusts nothing
+
+Even a `200` response goes through `parseAnalysis()` on the device. Then:
+
+```ts
+const maxPaths = maxPathsFor(depth);                  // 3 standard, 4 deep
+return {
+  ...analysis,
+  scenarios: analysis.scenarios.slice(0, maxPaths).map((s) =>
+    depth === 'deep' ? s : { ...s, branches: undefined },
+  ),
+};
+```
+
+### 5. The result is stored as a draft
+
+`createDecision()` gives the decision an id (`<base36 time>-<6 random chars>`), preselects the free dimensions the model actually rated, and prunes old drafts (keeping all saved decisions plus the 3 newest drafts). `recordExploration()` appends `Date.now()` to the rolling-window timestamps.
+
+### 6. Navigation
+
+After a 0.9 s *“Your fork is ready.”* beat, `router.replace('/decision/{id}')` replaces the analysis screen, so Back doesn’t return to it.
+
+## Failure paths
+
+| Where it fails | Result |
+|---|---|
+| Out of explorations | Paywall (`limit`). No request is sent. |
+| Fetch throws | `cancelled` if you aborted, `timeout` if the 125 s timer fired, otherwise `offline` |
+| Non-2xx response | Mapped by status and `error` code. See [Error handling](/ai/errors). |
+| 2xx but invalid shape | `invalid_output`, retried once by the client |
+| User taps Cancel | Request aborted. Nothing is stored and no exploration is used. |

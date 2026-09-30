@@ -1,0 +1,105 @@
+---
+title: "State and persistence"
+description: "The persisted zustand store, the in-memory pending store, and the subscription context."
+icon: "database"
+---
+
+Fork keeps state deliberately small. There are three sources:
+
+| Source | File | Persisted | Holds |
+|---|---|---|---|
+| `useForkStore` | `src/store/useForkStore.ts` | **Yes**: AsyncStorage `fork:v1` | Onboarding flag, decisions, exploration timestamps, cached Pro flag |
+| `usePending` | `src/store/pending.ts` | No (memory) | The request being analysed, its depth, and the composer draft |
+| `SubscriptionContext` | `src/services/revenuecat/SubscriptionProvider.tsx` | No (derived from RevenueCat + `proCache`) | `isPro`, the monthly package, billing mode, purchase/restore |
+
+## The persisted store
+
+```ts
+type PersistedState = {
+  onboarded: boolean;
+  decisions: Decision[];
+  explorations: number[];   // ms timestamps of successful explorations
+  proCache: boolean;        // last known fork_pro entitlement
+};
+```
+
+It’s configured with zustand’s `persist` middleware:
+
+```ts
+persist(creator, {
+  name: 'fork:v1',
+  version: 1,
+  storage: createJSONStorage(() => AsyncStorage),
+  partialize: ({ onboarded, decisions, explorations, proCache }) => ({ onboarded, decisions, explorations, proCache }),
+  onRehydrateStorage: () => () => useForkStore.setState({ hydrated: true }),
+});
+```
+
+`hydrated` isn’t persisted. The root layout waits for it before hiding the splash screen, so screens never render with empty data that then flickers into place.
+
+### Actions
+
+| Action | Effect |
+|---|---|
+| `completeOnboarding()` / `resetOnboarding()` | Sets `onboarded` |
+| `createDecision({input, analysis, source, depth, now?})` | Creates an unsaved decision, preselects the free dimensions the model rated (falling back to all four), prepends it and **prunes drafts** |
+| `recordExploration(now?)` | Keeps only timestamps inside the 7-day window, then appends `now` |
+| `markViewed(id, scenarioId)` | Adds the path to `viewedScenarioIds` once |
+| `setDimensions(id, dims)` | Saves the comparison selection |
+| `saveDecision(id, chosen, note, now?)` | Sets `chosen`, trimmed `note`, `saved: true`, `updatedAt` |
+| `updateNote(id, note, now?)` | Updates the note and `updatedAt` |
+| `deleteDecision(id)` | Removes it |
+| `setProCache(isPro)` | Called whenever RevenueCat reports customer info |
+| `clearAll()` | Resets to the initial state (used by *Delete all my data*) |
+
+### Draft pruning
+
+```ts
+const MAX_UNSAVED_DRAFTS = 3;
+
+export function pruneDrafts(decisions: Decision[]): Decision[] {
+  const drafts = decisions.filter((d) => !d.saved)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, MAX_UNSAVED_DRAFTS).map((d) => d.id);
+  const keep = new Set(drafts);
+  return decisions.filter((d) => d.saved || keep.has(d.id));
+}
+```
+
+Every saved decision is kept, plus only the three newest unsaved ones. That stops storage growing when people explore without keeping anything.
+
+### Selectors
+
+- `savedOf(decisions)` returns kept decisions sorted by `updatedAt` descending. It returns a **new array**, so call it inside `useMemo`, never as a zustand selector (that would re-render forever).
+- `getDecision(id)` reads a decision imperatively outside React.
+
+## The pending store
+
+```ts
+type Pending = {
+  input: DecisionInput | null;     // what /analyzing should send
+  depth: AnalysisDepth;            // 'standard' | 'deep'
+  setPending(input, depth): void;
+  clear(): void;
+  draft: DecisionInput;            // what's in the composer (shared by Home and New)
+  setDraft(draft): void;
+};
+```
+
+It’s never persisted, so a half-typed decision doesn’t survive a restart, and decision text never goes into a URL.
+
+If `/analyzing` mounts with no pending input (for example after a web refresh), it redirects to `/home`.
+
+## Subscription context
+
+See [SubscriptionProvider](/revenuecat/subscription-provider). The important rule:
+
+```ts
+const isPro = info ? hasProEntitlement(info) : mode !== 'unconfigured' && proCache;
+```
+
+Until RevenueCat answers, the cached flag is trusted, so Pro users aren’t locked out offline. Once RevenueCat answers, **it is the only source of truth**.
+
+## Schema migrations
+
+The store is at `version: 1`. If you change the persisted shape, bump the version and add a `migrate` function to the `persist` options. Otherwise old installs will rehydrate data in the old shape.

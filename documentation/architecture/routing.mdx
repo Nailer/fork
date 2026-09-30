@@ -1,0 +1,66 @@
+---
+title: "Routing"
+description: "Expo Router file-based routes, navigation patterns and route parameters."
+icon: "signpost"
+---
+
+Fork uses **Expo Router**. Every file in `src/app/` is a route, and `_layout.tsx` defines one root **Stack** with headers hidden (Fork draws its own `Header`).
+
+## Route table
+
+| Route | File | Presentation | Purpose |
+|---|---|---|---|
+| `/` | `index.tsx` | no animation | Launch animation, then redirect |
+| `/onboarding` | `onboarding.tsx` | fade | Three-page intro |
+| `/home` | `home.tsx` | fade | Main screen |
+| `/new` | `new.tsx` | fade from bottom | Full composer |
+| `/analyzing` | `analyzing.tsx` | fade, **swipe-back disabled** | Waiting + errors |
+| `/decision/[id]` | `decision/[id]/index.tsx` | fade from bottom | The fork |
+| `/decision/[id]/path/[sid]` | `decision/[id]/path/[sid].tsx` | fade from bottom | Path detail |
+| `/decision/[id]/compare` | `decision/[id]/compare.tsx` | fade from bottom | Comparison |
+| `/decision/[id]/summary` | `decision/[id]/summary.tsx` | fade from bottom | Choose & keep |
+| `/history` | `history.tsx` | fade from bottom | Journal |
+| `/settings` | `settings.tsx` | fade from bottom | Settings |
+| `/paywall?reason=` | `paywall.tsx` | **modal**, slides from bottom | Fork Pro |
+| *(anything else)* | `+not-found.tsx` | — | Missing-decision screen |
+
+The default animation for every screen is `fade_from_bottom` and the content background is `colors.bg` (`#08090D`), so there’s never a white flash between screens.
+
+## Route parameters
+
+`useDecisionParam()` (`src/hooks/useDecision.ts`) reads `id` and `sid` from the route, normalises arrays to single values, and selects the decision from the store:
+
+```ts
+export function useDecisionParam() {
+  const params = useLocalSearchParams<{ id: string; sid?: string }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const sid = Array.isArray(params.sid) ? params.sid[0] : params.sid;
+  const decision = useForkStore((s) => s.decisions.find((d) => d.id === id));
+  return { id, sid, decision };
+}
+```
+
+If there’s no matching decision (deleted, or a pruned draft), each decision screen renders `<MissingDecision />`.
+
+### Paywall reasons
+
+`/paywall` reads `reason` from the search params: `limit`, `save`, `depth`, `compare` or `upgrade`. Anything else falls back to `upgrade`. The reason sets the headline and is sent with the `paywall_viewed` event.
+
+## Navigation patterns
+
+| Pattern | Where | Why |
+|---|---|---|
+| `router.replace('/decision/{id}')` | After analysis | Back shouldn’t return to the loading screen |
+| `router.replace(...)` for **Next: Path X** | Path detail | Cycling through paths doesn’t pile up history |
+| `router.dismissTo('/home')` | Fork back button, the saved confirmation | Goes straight home from deep in the stack |
+| `router.canGoBack() ? back() : replace('/home')` | Paywall close, journal back | Works when opened from a deep link on the web |
+| Params instead of state for the paywall reason | Everywhere | Deep-linkable and simple |
+| In-memory store for the request | `/analyzing` | Keeps decision text out of URLs |
+
+## Deep links and the web
+
+- The app scheme is `fork://` (`scheme: 'fork'` in `app.config.ts`).
+- On the web, the export is a **single-page app** (`web.output: 'single'`). GitHub Pages serves `404.html` (a copy of `index.html`) for unknown paths, so deep links like `/fork/history` load the app.
+- `EXPO_BASE_URL=/fork` makes all asset and route URLs work under the `/fork` sub-path.
+
+<Note>A deep link to `/decision/<id>` only works on the device that stored that decision. Decisions aren’t synced.</Note>

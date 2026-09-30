@@ -1,0 +1,75 @@
+---
+title: "Tech stack"
+description: "Every framework, library and service Fork uses, with versions and what each one is for."
+icon: "boxes"
+---
+
+## App runtime
+
+| Package | Version | Role |
+|---|---|---|
+| `expo` | ~57.0.25 | SDK, config, build tooling (Continuous Native Generation: no committed `ios/` or `android/`) |
+| `react-native` | 0.86.3 | Native runtime (New Architecture) |
+| `react` / `react-dom` | 19.2.3 | UI, plus the React Compiler lint rules |
+| `react-native-web` | ~0.21.0 | Web target |
+| `expo-router` | ~57.0.23 | File-based navigation in `src/app` |
+| `typescript` | ~6.0.3 | Strict mode, `noUnusedLocals` |
+
+## UI and motion
+
+| Package | Role |
+|---|---|
+| `react-native-svg` 15.15.4 | The fork tree, Fork mark and all icons |
+| `expo-linear-gradient` | Screen backdrops tinted with the path colour |
+| `react-native-safe-area-context`, `react-native-screens` | Safe areas and native stack screens |
+| `@expo-google-fonts/fraunces`, `@expo-google-fonts/inter` + `expo-font` | Display and UI type (per-weight imports keep unused font files out of the bundle) |
+| `expo-haptics` | Selection, impact and success feedback on native |
+| `expo-splash-screen`, `expo-status-bar`, `expo-system-ui` | Launch and system chrome |
+
+## State, data and validation
+
+| Package | Role |
+|---|---|
+| `zustand` ^5 | The persisted app store and the in-memory pending-request store |
+| `@react-native-async-storage/async-storage` 2.2.0 | Persistence (localStorage on the web) |
+| `zod` ^4.6.5 | The single schema for AI output, shared with the edge function |
+| `@react-native-community/netinfo` | Offline detection on native |
+
+## Monetization
+
+| Package | Role |
+|---|---|
+| `react-native-purchases` ^10.10.2 | The RevenueCat SDK: offerings, purchases, restore, entitlements, customer-info listener |
+
+## Backend
+
+| Component | Detail |
+|---|---|
+| Supabase Edge Functions | Deno runtime, one function: `analyze-decision` |
+| `@anthropic-ai/sdk` 0.128.0 | Claude client (imported via `deno.json` as `npm:`) |
+| Gemini REST API | `generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` via `fetch` |
+| `zod` 4.6.5 | Server-side validation (same schema as the app) |
+
+## Tooling and quality
+
+| Tool | Role |
+|---|---|
+| Jest 29 + `jest-expo` | 52 unit tests across 7 suites |
+| ESLint 9 + `eslint-config-expo` (flat config) | Linting, including React Compiler rules |
+| `tsc --noEmit` | Type checking |
+| GitHub Actions | Typecheck → lint → test → web export → GitHub Pages |
+| EAS Build | Native builds (`development`, `preview`, `production` profiles) |
+| Playwright + ffmpeg *(optional)* | The reproducible demo recording in `scripts/record-demo.mjs` |
+| Mintlify | This documentation site (`documentation/`) |
+
+## Services and accounts
+
+| Service | Needed for | Owner action |
+|---|---|---|
+| **Supabase** | Hosting the AI proxy | A project (currently ref `gwruqdpbugqjrkyfvipa`) |
+| **Google AI Studio** *or* **Anthropic Console** | Model access | An API key with billing or credit |
+| **RevenueCat** | Subscriptions | A project with the Test Store, plus App Store / Play apps for production |
+| **GitHub Pages** | The live web build | Pages source set to *GitHub Actions* |
+| **Expo / EAS** | Native builds | An Expo account and `EAS_PROJECT_ID` |
+| **Apple Developer / Google Play Console** | Store releases | Paid developer accounts |
+| **Mintlify** | These docs | A Mintlify project connected to the repo |

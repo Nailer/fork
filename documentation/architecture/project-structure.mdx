@@ -1,0 +1,112 @@
+---
+title: "Project structure"
+description: "A file-by-file map of the repository."
+icon: "folder-tree"
+---
+
+```text
+fork/
+├── app.config.ts            Expo config (name, bundle IDs, icons, splash, web base URL, EAS project)
+├── eas.json                 EAS build profiles: base, development, preview, production
+├── package.json             Scripts and dependencies
+├── tsconfig.json            Strict TS; excludes supabase/ (Deno) and dist/
+├── eslint.config.js         eslint-config-expo flat config; ignores dist, supabase, .expo
+├── jest.setup.js            Mocks AsyncStorage and react-native-purchases for tests
+├── .env.example             Template for public EXPO_PUBLIC_* values
+├── AGENTS.md / CLAUDE.md    Guidance for AI coding agents working in the repo
+├── README.md                Project overview
+├── DEVPOST.md               Hackathon submission copy
+├── FINAL_RELEASE.md         Release checklist
+├── LICENSE                  MIT
+│
+├── .github/workflows/
+│   └── deploy-web.yml       CI: typecheck, lint, test, export web, deploy to GitHub Pages
+│
+├── assets/                  App icon, adaptive icon layers, favicon, splash icon
+│
+├── docs/
+│   ├── BUILD_IN_PUBLIC.md   Draft social posts
+│   ├── DEMO_SCRIPT.md       Shot list for the demo video
+│   ├── demo/                fork-demo.mp4 + poster.jpg
+│   ├── icon.png
+│   └── screenshots/         01-onboarding … 10-journal
+│
+├── documentation/           ← this Mintlify site (docs.json + MDX pages)
+│
+├── scripts/
+│   ├── sync-edge-schema.mjs Copies src/domain/{schema,parse}.ts into the edge function
+│   ├── serve-dist.mjs       Static server with SPA fallback for dist/ (port 8081)
+│   └── record-demo.mjs      Playwright + ffmpeg demo recorder (1080p, captions)
+│
+├── supabase/functions/analyze-decision/
+│   ├── index.ts             Deno.serve handler: CORS, config check, rate limit, providers, retries
+│   ├── prompt.ts            SYSTEM_PROMPT, buildUserPrompt, OUTPUT_SCHEMA, validateRequest
+│   ├── schema.ts            GENERATED copy of src/domain/schema.ts
+│   ├── parse.ts             GENERATED copy of src/domain/parse.ts
+│   └── deno.json            Import map: zod, @anthropic-ai/sdk
+│
+└── src/
+    ├── app/                 Expo Router screens
+    │   ├── _layout.tsx      Fonts, hydration gate, SafeArea, SubscriptionProvider, Stack
+    │   ├── index.tsx        Launch animation → /onboarding or /home
+    │   ├── onboarding.tsx   3-page intro
+    │   ├── home.tsx         Composer, examples, sample, Pro card, recent decisions
+    │   ├── new.tsx          Full composer with optional context and banners
+    │   ├── analyzing.tsx    Growing fork, stages, error states
+    │   ├── history.tsx      Decision journal
+    │   ├── paywall.tsx      Fork Pro (modal)
+    │   ├── settings.tsx     Plan, data, about, diagnostics
+    │   ├── +not-found.tsx   Missing-decision screen
+    │   └── decision/[id]/
+    │       ├── index.tsx        The fork
+    │       ├── compare.tsx      Comparison matrix
+    │       ├── summary.tsx      Choose & keep
+    │       └── path/[sid].tsx   Path detail
+    ├── components/
+    │   ├── ui.tsx           Screen, Header, Button, Card, Chip, PathBadge, LevelMeter, Banner,
+    │   │                    ProBadge, SectionLabel, ConfirmSheet, FadeIn, Backdrop, haptic…
+    │   ├── ForkTree.tsx     Signature SVG tree with animated drawing, selection halo, twigs
+    │   ├── ForkMark.tsx     The logo mark (stem + two branches)
+    │   ├── DecisionRow.tsx  Journal row + leaningLabel()/formatDate()
+    │   ├── Icon.tsx         Original line icons (22 names)
+    │   ├── Missing.tsx      “This decision isn’t here anymore”
+    │   └── Text.tsx         Typed text variants with a font-scale cap
+    ├── domain/
+    │   ├── schema.ts        zod schema: DecisionAnalysis, Scenario, Rating, Branch…
+    │   ├── parse.ts         extractJson, normalizeAnalysis, parseAnalysis
+    │   ├── types.ts         Decision, DecisionInput, ChosenPath, PATH_LETTERS
+    │   ├── limits.ts        Free/Pro limits, rolling window, depth
+    │   ├── dimensions.ts    8 dimensions, level labels, Free set
+    │   ├── compare.ts       Spread, comparison rows, key differences
+    │   └── sample.ts        The bundled sample decision
+    ├── features/
+    │   ├── explore.ts       startExploration(), cleanInput(), MIN_DESCRIPTION
+    │   └── openSample.ts    openSample()
+    ├── hooks/
+    │   ├── useDecision.ts   useDecisionParam(): id, sid, decision from the route
+    │   └── useProgress.ts   useProgress(), useReducedMotion(), stage()
+    ├── services/
+    │   ├── config.ts        Public config + billing mode
+    │   ├── analytics.ts     track() (dev-only console)
+    │   ├── ai/analyze.ts    analyzeDecision(), AnalysisError, ERROR_COPY
+    │   └── revenuecat/
+    │       ├── purchases.ts             The only file importing react-native-purchases
+    │       └── SubscriptionProvider.tsx React context: isPro, monthly, purchase, restore…
+    ├── store/
+    │   ├── useForkStore.ts  Persisted zustand store
+    │   └── pending.ts       In-memory hand-off + draft
+    ├── theme/
+    │   ├── tokens.ts        Colours, path colours, spacing, radii, fonts, type scale, elevation
+    │   ├── a11y.ts          decorative props for SVGs
+    │   └── web.ts           webNoOutline
+    └── __tests__/           7 Jest suites
+```
+
+## Files you should never edit by hand
+
+| File | Why | Instead |
+|---|---|---|
+| `supabase/functions/analyze-decision/schema.ts` | Generated | Edit `src/domain/schema.ts`, then `npm run sync:edge` |
+| `supabase/functions/analyze-decision/parse.ts` | Generated | Edit `src/domain/parse.ts`, then `npm run sync:edge` |
+| `ios/`, `android/` | Generated by Expo prebuild (git-ignored) | Configure in `app.config.ts` and config plugins |
+| `dist/` | Web export output | `npm run build:web` |

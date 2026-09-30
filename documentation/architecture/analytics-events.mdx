@@ -1,0 +1,40 @@
+---
+title: "Analytics events"
+description: "The privacy-safe product event hook and every event Fork emits."
+icon: "activity"
+---
+
+Fork bundles **no analytics SDK**. `src/services/analytics.ts` defines a single hook:
+
+```ts
+export function track(event: ProductEvent, props?: Record<string, string | number | boolean>) {
+  if (__DEV__) console.log(`[event] ${event}`, props ?? '');
+}
+```
+
+In production builds `track()` does nothing. Events carry **no decision text and no personal data**.
+
+## Event catalogue
+
+| Event | Fired from | Props |
+|---|---|---|
+| `onboarding_completed` | Onboarding → Skip / Start exploring | — |
+| `decision_started` | `startExploration()` | `withContext: boolean` |
+| `decision_generated` | Analysis succeeded | `paths: number`, `depth` (standard or deep) |
+| `sample_opened` | `openSample()` | — |
+| `scenario_opened` | Path detail mounted | `index: number` |
+| `comparison_opened` | Compare mounted | `paths: number` |
+| `decision_saved` | Keep / Update decision | `undecided: boolean`, `withNote: boolean` |
+| `paywall_viewed` | Paywall mounted | `reason: string` |
+| `purchase_started` | Before `purchasePackage()` | — |
+| `purchase_completed` | Purchase succeeded | — |
+
+## Connecting a real analytics provider
+
+To send events somewhere, replace the body of `track()`, for example with PostHog, Amplitude or your own endpoint. Keep these rules:
+
+1. Never add decision text, notes or analysis content to props.
+2. Update the privacy copy in **Settings → Your data** (*“Fork does not use analytics or tracking SDKs.”*) and in [Privacy and security](/principles/privacy-and-security).
+3. Check the App Store privacy label and the Play data-safety form.
+
+RevenueCat already provides subscription analytics (conversions, MRR, churn) in its dashboard without any extra code.
