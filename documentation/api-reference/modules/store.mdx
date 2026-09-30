@@ -1,0 +1,65 @@
+---
+title: "store"
+description: "src/store/useForkStore.ts and pending.ts: state shape, actions and helpers."
+icon: "database"
+---
+
+## useForkStore
+
+```ts
+export const STORAGE_KEY = 'fork:v1';
+
+export type ForkState = {
+  // persisted
+  onboarded: boolean;
+  decisions: Decision[];
+  explorations: number[];
+  proCache: boolean;
+  // runtime
+  hydrated: boolean;
+  // actions
+  completeOnboarding(): void;
+  resetOnboarding(): void;
+  createDecision(args: { input: DecisionInput; analysis: DecisionAnalysis; source: DecisionSource; depth: AnalysisDepth; now?: number }): Decision;
+  recordExploration(now?: number): void;
+  markViewed(id: string, scenarioId: string): void;
+  setDimensions(id: string, dims: DimensionKey[]): void;
+  saveDecision(id: string, chosen: ChosenPath, note: string, now?: number): void;
+  updateNote(id: string, note: string, now?: number): void;
+  deleteDecision(id: string): void;
+  setProCache(isPro: boolean): void;
+  clearAll(): void;
+};
+```
+
+### Helpers
+
+| Export | Returns |
+|---|---|
+| `newId()` | `` `${Date.now().toString(36)}-${random6}` `` |
+| `pruneDrafts(decisions)` | Every saved decision + the 3 newest drafts |
+| `savedOf(decisions)` | Kept decisions, newest `updatedAt` first. Use it inside `useMemo`. |
+| `getDecision(id)` | A decision by id, read outside React |
+
+### Usage
+
+```tsx
+const decisions = useForkStore((s) => s.decisions);
+const saved = useMemo(() => savedOf(decisions), [decisions]);
+const saveDecision = useForkStore((s) => s.saveDecision);
+```
+
+## usePending (memory only)
+
+```ts
+type Pending = {
+  input: DecisionInput | null;
+  depth: AnalysisDepth;
+  setPending(input: DecisionInput, depth: AnalysisDepth): void;
+  clear(): void;
+  draft: DecisionInput;
+  setDraft(draft: DecisionInput): void;
+};
+```
+
+See [State and persistence](/architecture/state) for the design.

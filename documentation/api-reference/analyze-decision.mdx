@@ -1,0 +1,153 @@
+---
+title: "Analyze a decision"
+api: "POST https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision"
+description: "Turn a free-text decision into 2–4 structured, validated paths."
+icon: "send"
+authMethod: "bearer"
+---
+
+Sends the decision to the configured model (Gemini or Claude) with a strict JSON schema, validates the result with zod, and returns it. Nothing is stored.
+
+## Headers
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer <SUPABASE_ANON_KEY>`
+</ParamField>
+
+<ParamField header="apikey" type="string" required>
+  The same anon key. The Supabase gateway accepts either header, and Fork sends both.
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  `application/json`
+</ParamField>
+
+## Body
+
+<ParamField body="description" type="string" required>
+  The decision in the person’s own words. Trimmed, then it must be **8–2,000 characters**.
+</ParamField>
+
+<ParamField body="priorities" type="string">
+  What matters most to them. Trimmed and cut to 240 characters. Empty values are ignored.
+</ParamField>
+
+<ParamField body="budget" type="string">
+  Budget, in their words. Trimmed and cut to 240 characters.
+</ParamField>
+
+<ParamField body="timeHorizon" type="string">
+  Timeframe, in their words. Trimmed and cut to 240 characters.
+</ParamField>
+
+<ParamField body="depth" type="string" default="standard">
+  `standard` asks for 2–3 paths with no branches. `deep` asks for 3–4 paths, each with exactly two branches. Any value other than `"deep"` is treated as `standard`.
+</ParamField>
+
+## Response (200)
+
+<ResponseField name="analysis" type="DecisionAnalysis" required>
+  The validated analysis. See [DecisionAnalysis](/api-reference/decision-analysis).
+</ResponseField>
+
+<ResponseField name="model" type="string" required>
+  The model that produced it, e.g. `gemini-2.5-flash` or `claude-opus-5`.
+</ResponseField>
+
+<ResponseField name="provider" type="string" required>
+  `gemini` or `anthropic`.
+</ResponseField>
+
+## Errors
+
+| Status | `error` | When |
+|---|---|---|
+| 400 | `bad_request` | Body isn’t JSON, or the description is too short or too long |
+| 401 | *(gateway)* | Missing or invalid anon key |
+| 405 | `method_not_allowed` | Not `POST` |
+| 422 | `refused` | The provider refused on safety grounds |
+| 429 | `rate_limited` | Per-IP limit hit, or the provider returned 429 |
+| 502 | `invalid_output` | The output failed validation on both attempts |
+| 502 | `upstream` | Another provider error on the final attempt |
+| 503 | `not_configured` | No key for the selected provider, or the key was rejected |
+| 503 | `billing` | Provider credit or quota exhausted |
+| 504 | `timeout` | The 105 s budget ran out |
+| 546 | *(gateway)* | The worker exceeded the platform limit |
+
+<RequestExample>
+```bash cURL
+curl -X POST https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  -H "apikey: $SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Should I buy a new laptop now or keep my current one for another year?",
+    "priorities": "Getting real work done without friction, not wasting money",
+    "budget": "About $1,500 if I buy",
+    "timeHorizon": "Next 12 months",
+    "depth": "standard"
+  }'
+```
+
+```ts TypeScript (app client)
+import { analyzeDecision } from '../services/ai/analyze'; // from a file in src/app
+
+const analysis = await analyzeDecision(
+  { description: 'Should I buy a new laptop now or wait a year?', budget: 'About $1,500' },
+  'standard',
+  { signal: abortController.signal },
+);
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200
+{
+  "analysis": {
+    "decisionTitle": "New laptop now, or one more year?",
+    "summary": "Your current laptop works but is starting to cost you time and focus…",
+    "variables": [
+      { "name": "Daily friction", "why": "How much the slowdowns and short battery actually cost you each week." }
+    ],
+    "scenarios": [
+      {
+        "id": "buy-now",
+        "title": "Buy a new laptop now",
+        "summary": "You spend about $1,500 now and remove the day-to-day friction immediately…",
+        "immediateEffects": ["Design tools and exports run without waiting"],
+        "longerTermConsiderations": ["A new machine is likely to stay capable for several years"],
+        "benefits": ["The friction ends today rather than in a year"],
+        "tradeoffs": ["The largest up-front cost of any path"],
+        "risks": ["If money gets tight, the purchase may feel heavier than expected"],
+        "assumptions": ["The slowdowns are caused by hardware, not a cluttered system"],
+        "uncertaintyLevel": "low",
+        "uncertainty": ["How much time the old machine really costs you per week is an estimate"],
+        "importantVariables": ["Daily friction", "Cash on hand"],
+        "whatWouldChange": ["A clean reinstall fixing most of the slowdown"],
+        "questionsToConsider": ["Roughly how many hours a week do you lose to waiting?"],
+        "ratings": [
+          { "dimension": "cost", "level": "high", "note": "About $1,500 up front" },
+          { "dimension": "flexibility", "level": "low", "note": "Commits the money now" }
+        ]
+      },
+      { "id": "keep-a-year", "title": "Keep it for one more year", "…": "…" }
+    ],
+    "comparisonDimensions": ["cost", "time", "flexibility", "risk"],
+    "questions": ["Is $1,500 comfortable right now, or a stretch?"],
+    "assumptions": ["Prices stay roughly the same over the year"],
+    "missingInformation": ["The exact model and whether it can be repaired"],
+    "caution": null
+  },
+  "model": "gemini-2.5-flash",
+  "provider": "gemini"
+}
+```
+
+```json 503
+{ "error": "not_configured", "message": "The AI service is not configured yet." }
+```
+
+```json 400
+{ "error": "bad_request", "message": "Describe the decision in a little more detail." }
+```
+</ResponseExample>

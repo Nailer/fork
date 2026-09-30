@@ -1,0 +1,55 @@
+---
+title: "Extending Fork"
+description: "Recipes for common changes: a new dimension, a new path field, an annual plan, a new provider, a new screen."
+icon: "puzzle"
+---
+
+## Add a comparison dimension
+
+<Steps>
+  <Step title="Schema">Add the key to `DIMENSION_KEYS` in `src/domain/schema.ts`.</Step>
+  <Step title="Labels">Add a `DimensionMeta` entry to `DIMENSIONS` in `src/domain/dimensions.ts`, with a label, three level phrases and a `pro` flag.</Step>
+  <Step title="Prompt">Add the key to `DIMENSIONS` in `prompt.ts` and describe it in `SYSTEM_PROMPT` (“… `newKey` is how much …”).</Step>
+  <Step title="Sync and test">`npm run sync:edge && npm test`, then update the sample’s ratings.</Step>
+  <Step title="Deploy">Redeploy the function, then ship the app.</Step>
+</Steps>
+
+Free users get it only if you add it to `FREE_DIMENSIONS`.
+
+## Add a field to each path
+
+1. Add it to `ScenarioSchema` (with limits).
+2. Add it to the scenario `obj({...})` in `OUTPUT_SCHEMA`. The test checks that the keys match.
+3. If it’s a string list, add it to `LIST_LIMITS` in `parse.ts`.
+4. Explain it in `SYSTEM_PROMPT`.
+5. Render it in `src/app/decision/[id]/path/[sid].tsx` (e.g. a new `SectionLabel` + `PointGroup`).
+6. Update `sample.ts`, run `sync:edge`, test, redeploy.
+7. Old saved decisions won’t have the field. Make the UI tolerate `undefined`, or migrate the store.
+
+## Offer an annual plan
+
+1. In RevenueCat, add `fork_pro_annual`, attach it to `fork_pro`, and add an **Annual** package to the Current offering.
+2. In `SubscriptionProvider`, expose `annual: offering?.annual ?? null` alongside `monthly`.
+3. In `paywall.tsx`, render a second plan row and track the selected package. Pass the selected package to a `purchase(pkg)` variant.
+4. Keep the disclosure honest: period, price, auto-renewal. Only show a saving if it’s computed from real `price` values.
+
+## Add a model provider
+
+In `supabase/functions/analyze-decision/index.ts`:
+
+1. Write `generateX(userPrompt, timeoutMs, mode): Promise<Generated>` that returns `{ refusal, text, truncated, model }`.
+2. Extend `PROVIDER` selection and `generate()`.
+3. Add the key check at the top of `Deno.serve`.
+4. Make sure the error messages it throws match the classification regexes (auth, quota, 429, timeout, schema), or extend them.
+5. Document the new secrets in [Environment variables](/deploy/environment-variables).
+
+## Add a screen
+
+1. Create `src/app/<name>.tsx`. It becomes a route automatically.
+2. Wrap it in `<Screen>` with `<Header>`. Use `Text`, `Button` and the other design-system components.
+3. Optional: add a `Stack.Screen` in `_layout.tsx` for a custom presentation (modal, animation, gestures).
+4. Navigate with `router.push('/<name>')`.
+
+## Server-side entitlement check
+
+See [Entitlements and limits → Security note](/revenuecat/entitlements-and-limits#security-note).

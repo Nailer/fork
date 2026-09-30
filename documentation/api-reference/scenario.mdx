@@ -1,0 +1,46 @@
+---
+title: "Scenario"
+description: "One path through the decision, with every field, its limits, and where it appears in the UI."
+icon: "route"
+---
+
+Defined by `ScenarioSchema`. List limits are enforced after [normalisation](/ai/parsing-and-recovery), which trims lists that are too long instead of rejecting them.
+
+| Field | Type | Limits | Shown as |
+|---|---|---|---|
+| `id` | string | 1–40, unique (repaired to `path-n`) | Route param `sid` |
+| `title` | string | ≤ 90 | Node label, path title |
+| `summary` | string | ≤ 400 | Path header, preview card |
+| `immediateEffects` | string[] | 1–5 | **What changes immediately** timeline |
+| `longerTermConsiderations` | string[] | 1–5 | **Over time** |
+| `benefits` | string[] | 1–5 | **Potential upside** |
+| `tradeoffs` | string[] | 1–5 | **Tradeoffs**. `[0]` is used in path rows and the summary. |
+| `risks` | string[] | 1–5 | **What could go wrong** |
+| `assumptions` | string[] | 1–5 | **This path assumes…** |
+| `uncertaintyLevel` | `low` / `moderate` / `high` | — | **How uncertain is this path?** meter |
+| `uncertainty` | string[] | 1–4 | **Uncertain** |
+| `importantVariables` | string[] | 1–5 | **Hinges on** (first two) |
+| `whatWouldChange` | string[] | 1–4 | **What would change this path** |
+| `questionsToConsider` | string[] | 1–4 | **Questions worth answering** |
+| `ratings` | Rating[] | 1–8, one per dimension | Compare matrix, preview mini-meters |
+| `branches` | Branch[] *(optional)* | 0–2 | **Where this path could split** and tree twigs (Pro, deep) |
+
+## Rating
+
+<ResponseField name="dimension" type="DimensionKey" required>
+  One of `cost`, `time`, `flexibility`, `risk`, `effort`, `upside`, `shortTerm`, `longTerm`. Unknown or duplicate ratings are dropped during normalisation.
+</ResponseField>
+<ResponseField name="level" type="'low' | 'moderate' | 'high'" required>
+  Lower-cased during normalisation.
+</ResponseField>
+<ResponseField name="note" type="string (≤ 160)" required>
+  Why this rating applies to this person, e.g. *“About $1,500 up front”*.
+</ResponseField>
+
+## Branch
+
+<ResponseField name="label" type="string (≤ 90)" required>e.g. *The speed-up is big*</ResponseField>
+<ResponseField name="condition" type="string (≤ 400)" required>e.g. *If the slowdowns were mostly hardware*</ResponseField>
+<ResponseField name="outcome" type="string (≤ 400)" required>e.g. *Hours come back each week and the cost feels justified within months.*</ResponseField>
+
+At `standard` depth the model is told to set `branches: null`. The normaliser removes `null` and empty arrays, and the client strips branches from standard results.

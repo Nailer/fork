@@ -1,0 +1,36 @@
+---
+title: "Changelog"
+description: "Project history, reconstructed from the git log."
+icon: "history"
+---
+
+<Update label="30 Sep 2026" description="Documentation">
+  - Added this Mintlify documentation site in `documentation/`.
+</Update>
+
+<Update label="29 Sep 2026" description="AI provider">
+  - **Switched the Fork AI proxy to Gemini, with Anthropic as the fallback.** Gemini (`gemini-2.5-flash`) is used when `GEMINI_API_KEY` is set. Otherwise Claude. Added `FORK_AI_PROVIDER`, `FORK_GEMINI_MODEL` and `FORK_EFFORT`, and changed Claude’s default effort to `low`.
+</Update>
+
+<Update label="28 Sep 2026" description="Web deployment and redesign">
+  - Fixed false offline detection on GitHub Pages (Home and New decision now use `navigator.onLine` on the web).
+  - Fixed the live AI configuration fallback on the web: the default endpoint always uses its anon key.
+  - Configured the Fork API for the GitHub Pages deployment.
+  - Regenerated the lockfile so `npm ci` works in CI.
+  - Refreshed the screenshots, README and demo script for the redesign, and fixed per-instance SVG gradient IDs, the Home sample preview and the demo recorder flow.
+  - Logged model rejection reasons, added the plain-JSON fallback request, and surfaced billing errors.
+  - Fixed the billing mode when keys are missing, and synced the edge schema.
+  - Redesigned the UI, fixed web a11y props, added the AI time budget and public defaults.
+  - Added environment configuration.
+  - Rewrote the release checklist for the Next Gen submission.
+</Update>
+
+<Update label="26 Sep 2026" description="First build">
+  - Scaffolded the Expo app with the router, RevenueCat and animation dependencies.
+  - Added the decision domain, the AI proxy edge function and the RevenueCat service.
+  - Built the app: onboarding, fork visualisation, paths, compare, journal, paywall.
+  - Added the test suite, lint config and React Compiler lint fixes.
+  - Added an original app icon, splash, EAS profiles and an env template, and trimmed bundled fonts.
+  - Added the demo video, screenshots and a reproducible demo recording script.
+  - Added the README, Devpost copy, release checklist, demo script, build-in-public drafts and MIT license, plus the “explore again” action.
+</Update>

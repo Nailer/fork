@@ -1,0 +1,57 @@
+---
+title: "limits"
+description: "src/domain/limits.ts: Free and Pro constants, the rolling weekly window, save limits and depth."
+icon: "gauge"
+---
+
+## Constants
+
+| Name | Value |
+|---|---|
+| `FREE_WEEKLY_EXPLORATIONS` | `3` |
+| `FREE_SAVED_DECISIONS` | `5` |
+| `FREE_MAX_PATHS` | `3` |
+| `PRO_MAX_PATHS` | `4` |
+| `WEEK_MS` | `604_800_000` (7 days) |
+
+## Functions
+
+<ResponseField name="recentExplorations(timestamps, now?)" type="number[]">
+  The timestamps within the rolling 7-day window: `t <= now && now - t < WEEK_MS`. Future timestamps (clock changes) are excluded.
+</ResponseField>
+
+<ResponseField name="remainingExplorations(timestamps, isPro, now?)" type="number">
+  `Infinity` for Pro. Otherwise `max(0, 3 − recent.length)`.
+</ResponseField>
+
+<ResponseField name="canExplore(timestamps, isPro, now?)" type="boolean">
+  `remainingExplorations(...) > 0`.
+</ResponseField>
+
+<ResponseField name="nextFreeSlotAt(timestamps, now?)" type="number | null">
+  `null` if under the limit. Otherwise the oldest recent timestamp plus `WEEK_MS`, which is when a slot frees up.
+</ResponseField>
+
+<ResponseField name="canSave(savedCount, isPro, alreadySaved)" type="boolean">
+  `isPro || alreadySaved || savedCount < 5`. Re-saving a kept decision is always allowed.
+</ResponseField>
+
+<ResponseField name="depthFor(isPro)" type="'deep' | 'standard'">
+  The analysis depth for the user’s plan.
+</ResponseField>
+
+<ResponseField name="maxPathsFor(depth)" type="number">
+  `4` for deep, `3` for standard.
+</ResponseField>
+
+## Example
+
+```ts
+const now = Date.now();
+const day = 24 * 3600 * 1000;
+const ts = [now - 8 * day, now - 3 * day, now - 2 * day, now - 1 * day];
+
+recentExplorations(ts, now);         // the last three (8 days ago is outside the window)
+remainingExplorations(ts, false, now); // 0
+nextFreeSlotAt(ts, now);             // now - 3 days + 7 days = in 4 days
+```

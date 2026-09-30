@@ -1,0 +1,64 @@
+---
+title: "Development workflow"
+description: "Day-to-day commands, conventions and rules for working on Fork."
+icon: "terminal"
+---
+
+## npm scripts
+
+| Script | Command | Use |
+|---|---|---|
+| `start` | `expo start` | Metro + QR code for Expo Go or a dev client |
+| `web` | `expo start --web` | Run in the browser |
+| `ios` / `android` | `expo start --ios` / `--android` | Simulator or emulator |
+| `typecheck` | `tsc --noEmit` | Strict type check |
+| `lint` | `expo lint` | ESLint (eslint-config-expo, flat config) |
+| `test` | `jest` | 52 unit tests |
+| `sync:edge` | `node scripts/sync-edge-schema.mjs` | Copy the schema and parser into the edge function |
+| `build:web` | `expo export --platform web` | Static web build in `dist/` |
+
+## Before you push
+
+```bash
+npm run typecheck && npm run lint && npm test
+```
+
+CI runs the same three steps before deploying, and a failure blocks the Pages deploy.
+
+## Rules of the codebase
+
+These come from `AGENTS.md` and the existing code:
+
+1. **Expo changes fast.** Check the docs for the SDK major version in `package.json` (currently **57**): `https://docs.expo.dev/versions/v57.0.0/`. Don’t rely on memory.
+2. **Install native-compatible versions with `npx expo install <pkg>`**, not `npm install`.
+3. **Routes live only in `src/app/`.** Components, hooks and utilities go elsewhere.
+4. **Import navigation from `expo-router`** (`router`, `Link`, `useLocalSearchParams`).
+5. **Never create or edit `ios/` or `android/`.** Configure through `app.config.ts` and plugins.
+6. **Only `purchases.ts` imports `react-native-purchases`.**
+7. **Domain code stays pure.** No React or Expo imports in `src/domain`.
+8. **Never render unvalidated AI output.** Use `parseAnalysis`.
+9. **Colour is never the only signal.** Pair it with letters or words.
+10. **Respect reduced motion.** Use `useProgress` / `useReducedMotion` / `FadeIn`.
+11. **Use tokens** from `src/theme/tokens.ts`. No raw hex values in screens.
+12. **No secrets in `EXPO_PUBLIC_*`.**
+
+## Lint notes
+
+ESLint includes the **React Compiler** rules. You’ll see a few deliberate `eslint-disable-next-line` comments, for example in `analyzing.tsx` (`react-hooks/set-state-in-effect`, where state is only set after an `await`) and `compare.tsx` (memo keyed by content). Keep new suppressions rare and add a comment explaining each one.
+
+`eslint.config.js` ignores `dist/*`, `supabase/*` (Deno) and `.expo/*`. `tsconfig.json` excludes `supabase` and `dist`.
+
+## Git conventions
+
+- `main` is the deploy branch. Every push runs CI and redeploys GitHub Pages.
+- Commit messages are short and imperative, e.g. *“Fix false offline detection on GitHub Pages”*, *“docs: …”*.
+- Don’t commit `.env`, signing keys or `dist/`. They’re git-ignored.
+
+## Useful diagnostics
+
+```bash
+npx expo-doctor               # dependency and config problems
+npx expo install --fix        # align versions with SDK 57
+npx expo config --type public # resolved app config
+npx expo start --clear        # clear the Metro cache (after .env changes)
+```

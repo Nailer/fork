@@ -1,0 +1,35 @@
+---
+title: "Scripts"
+description: "The Node scripts in scripts/: schema sync, static server and demo recorder."
+icon: "scroll-text"
+---
+
+## sync-edge-schema.mjs
+
+```bash
+npm run sync:edge
+```
+
+Copies `src/domain/schema.ts` and `src/domain/parse.ts` into `supabase/functions/analyze-decision/`, adding a `// GENERATED … do not edit.` header and rewriting `from './schema'` to `from './schema.ts'` (Deno needs explicit extensions). It also exports `edgeVersion(file)` for reuse.
+
+Run it after **any** change to either domain file. `edge.test.ts` fails if you forget.
+
+## serve-dist.mjs
+
+```bash
+npm run build:web
+node scripts/serve-dist.mjs          # PORT=8081 by default
+```
+
+A tiny static server for `dist/` with **SPA fallback**: unknown paths serve `index.html`. Content types cover html, js, css, png, ico, ttf, json and svg. Paths are normalised and kept inside `dist/`.
+
+## record-demo.mjs
+
+Records the demo video (`docs/demo/fork-demo.mp4`) from the real web build. See [Recording the demo](/contributing/demo-recording).
+
+| Env | Default | Meaning |
+|---|---|---|
+| `APP_URL` | `http://localhost:8081` | Where the app is served |
+| `LIVE` | unset | `1` = type a decision and generate it live (needs a working AI proxy) |
+| `PLAYWRIGHT` | `playwright` | Path to Playwright’s `index.mjs` if it can’t be resolved |
+| `FFMPEG` | `ffmpeg` | ffmpeg binary |

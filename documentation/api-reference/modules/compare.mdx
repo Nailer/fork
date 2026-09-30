@@ -1,0 +1,57 @@
+---
+title: "compare"
+description: "src/domain/compare.ts: comparison rows, spread, and key differences, without ever scoring paths."
+icon: "columns-3"
+---
+
+## Types
+
+```ts
+export type ComparisonCell = { scenarioId: string; rating: Rating | null };
+
+export type ComparisonRow = {
+  dimension: DimensionKey;
+  cells: ComparisonCell[];   // one per scenario, in path order
+  spread: number;            // 0 = paths look the same, 2 = opposite ends
+};
+```
+
+## Functions
+
+<ResponseField name="ratingFor(scenario, dimension)" type="Rating | null">
+  The scenario’s rating for that dimension, or `null`.
+</ResponseField>
+
+<ResponseField name="spreadOf(levels)" type="0 | 1 | 2">
+  `max − min` of the `LEVEL_VALUE`s. `0` for fewer than two levels.
+</ResponseField>
+
+<ResponseField name="buildComparison(scenarios, selected)" type="ComparisonRow[]">
+  One row per selected dimension, sorted by **spread descending**, with ties keeping the selection order. Unrated cells are `null` and don’t count towards the spread. No totals or winners.
+</ResponseField>
+
+<ResponseField name="availableDimensions(scenarios, canonical)" type="DimensionKey[]">
+  The dimensions at least one scenario rated, in the order of `canonical`.
+</ResponseField>
+
+<ResponseField name="toggleDimension(selected, key)" type="DimensionKey[]">
+  Adds or removes `key`. It won’t remove the last remaining dimension.
+</ResponseField>
+
+<ResponseField name="keyDifferences(rows, limit = 3)" type="ComparisonRow[]">
+  The first `limit` rows with `spread > 0`. Used on the **Your fork** screen.
+</ResponseField>
+
+## Example
+
+```ts
+// Illustrative: paths A (buy now), B (keep a year), C (fix it up)
+buildComparison(scenarios, ['cost', 'time', 'risk']);
+// → [
+//   { dimension: 'cost', spread: 2, cells: [high, low, moderate] },   // biggest difference
+//   { dimension: 'risk', spread: 1, … },
+//   { dimension: 'time', spread: 0, … },                               // similar across paths
+// ]
+```
+
+The code comment says it best: *“Rows where the paths genuinely differ come first — that’s where the decision lives. This deliberately does not total or score paths: Fork never ranks the options.”*

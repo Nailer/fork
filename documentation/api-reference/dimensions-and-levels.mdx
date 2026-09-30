@@ -1,0 +1,42 @@
+---
+title: "Dimensions and levels"
+description: "The eight comparison dimensions, the three levels, and the plain-language label for every combination."
+icon: "sliders-horizontal"
+---
+
+Defined in `src/domain/dimensions.ts`.
+
+## Levels
+
+| Level | `LEVEL_LABEL` | `LEVEL_VALUE` | Bar segments |
+|---|---|---|---|
+| `low` | Low | 1 | ▮▯▯ |
+| `moderate` | Moderate | 2 | ▮▮▯ |
+| `high` | High | 3 | ▮▮▮ |
+
+`LEVEL_VALUE` is used **only** to compute the spread between paths. It’s never summed into a score.
+
+## Dimensions
+
+| Key | Label | Plan | Meaning (as told to the model) | low | moderate | high |
+|---|---|---|---|---|---|---|
+| `cost` | Cost | Free | how much money it takes | Low cost | Some cost | High cost |
+| `time` | Time | Free | how much time it consumes | Little time | Some time | A lot of time |
+| `flexibility` | Flexibility | Free | how many options it keeps open | Locks you in | Some room | Keeps options open |
+| `risk` | Risk | Free | how much could go wrong | Low risk | Some risk | Higher risk |
+| `effort` | Effort | Pro | how much work it takes | Light lift | Some effort | Heavy lift |
+| `upside` | Potential upside | Pro | how much potential benefit it offers | Modest upside | Some upside | Big upside |
+| `shortTerm` | Short-term impact | Pro | how much changes in the near term | Small change now | Noticeable now | Big change now |
+| `longTerm` | Long-term impact | Pro | how much it shapes what comes later | Fades over time | Lasting effect | Shapes what comes next |
+
+## Exports
+
+```ts
+export type DimensionMeta = { key: DimensionKey; label: string; levels: Record<Level, string>; pro: boolean };
+
+export const DIMENSIONS: Record<DimensionKey, DimensionMeta>;
+export const FREE_DIMENSIONS: DimensionKey[];   // ['cost', 'time', 'flexibility', 'risk']
+export const ALL_DIMENSIONS: DimensionKey[];    // all 8, canonical order
+export const LEVEL_LABEL: Record<Level, string>;
+export const LEVEL_VALUE: Record<Level, number>;
+```

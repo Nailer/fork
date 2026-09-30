@@ -1,0 +1,58 @@
+---
+title: "DecisionAnalysis"
+description: "The top-level object the AI returns and the app renders."
+icon: "file-json"
+---
+
+Defined by `DecisionAnalysisSchema` in `src/domain/schema.ts`. “Text” means a trimmed, non-empty string of at most 400 characters. “Short text” is at most 90.
+
+<ResponseField name="decisionTitle" type="string (short text, ≤ 90)" required>
+  A concise title for the decision, e.g. *“New laptop now, or one more year?”*. Shown as the fork screen title and in the journal.
+</ResponseField>
+
+<ResponseField name="summary" type="string (text)" required>
+  One short paragraph framing the real question. Shown under **The situation**.
+</ResponseField>
+
+<ResponseField name="variables" type="Variable[] (1–6)" required>
+  The factors that genuinely drive this decision. Shown as **Factors that matter**.
+  <Expandable title="Variable">
+    <ResponseField name="name" type="string (short text)" required>e.g. *Cash on hand*</ResponseField>
+    <ResponseField name="why" type="string (text)" required>Why it matters here.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="scenarios" type="Scenario[] (2–4)" required>
+  The paths. The client keeps up to 3 (standard) or 4 (deep). See [Scenario](/api-reference/scenario).
+</ResponseField>
+
+<ResponseField name="comparisonDimensions" type="DimensionKey[] (1–8)" required>
+  The dimensions the model considers most relevant. Normalisation removes unknown values and duplicates. (The app decides the initial selection from the free dimensions actually rated.)
+</ResponseField>
+
+<ResponseField name="questions" type="string[] (1–5)" required>
+  Decision-level questions worth answering. Shown on the **Your fork** screen.
+</ResponseField>
+
+<ResponseField name="assumptions" type="string[] (1–5)" required>
+  Assumptions that apply to the whole decision.
+</ResponseField>
+
+<ResponseField name="missingInformation" type="string[] (0–4)" required>
+  What Fork doesn’t know but would change the picture. Shown as **What Fork doesn’t know** (hidden when empty).
+</ResponseField>
+
+<ResponseField name="caution" type="Caution | null" required>
+  Set only for high-stakes decisions. Shown as the gold **Worth talking to a professional** banner.
+  <Expandable title="Caution">
+    <ResponseField name="domain" type="'medical' | 'legal' | 'financial' | 'safety' | 'other'" required />
+    <ResponseField name="message" type="string (text)" required>A calm recommendation to consult a qualified professional.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## TypeScript
+
+```ts
+import type { DecisionAnalysis } from '../domain/schema';
+// = z.infer<typeof DecisionAnalysisSchema>
+```

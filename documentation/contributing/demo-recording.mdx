@@ -1,0 +1,43 @@
+---
+title: "Recording the demo"
+description: "Reproduce the 1080p demo video automatically, or record it by hand from the shot list."
+icon: "video"
+---
+
+## Automated (Playwright + ffmpeg)
+
+The recorder shows captions on the left and the **real app** inside a phone frame on the right, captured frame by frame at **1920 × 1080**. It reuses the app’s own Fraunces and Inter font files from the web export, so the captions match the product.
+
+```bash
+npm run build:web
+node scripts/serve-dist.mjs            # keep this terminal open (port 8081)
+
+# in a second terminal
+npm i --no-save playwright
+npx playwright install chromium
+LIVE=1 node scripts/record-demo.mjs    # needs ffmpeg on PATH → docs/demo/fork-demo.mp4
+```
+
+Windows PowerShell: `$env:LIVE="1"; node scripts/record-demo.mjs`
+
+- Without `LIVE=1`, the recorder walks the **sample** decision, which works offline.
+- With `LIVE=1`, it types a decision and generates it live, cutting out the AI wait.
+- Frames go into `docs/demo/.frames/` (git-ignored) before ffmpeg encodes them.
+
+## Manual (shot list)
+
+Record Chrome in device mode (iPhone 14 Pro) in a fresh profile, so onboarding shows and you start on Free.
+
+| Time | On screen | Voice-over |
+|---|---|---|
+| 0:00–0:08 | Onboarding: the fork draws itself | “What if AI didn’t tell you what to choose — but let you explore what each choice changes? This is Fork.” |
+| 0:08–0:18 | Skip → Home, type a laptop decision → **Build my paths** | “I describe a decision in my own words.” |
+| 0:18–0:30 | Analysis → “Your fork is ready.” (trim the wait) | “Fork maps it into genuinely different paths.” |
+| 0:30–0:50 | Tap branch B → preview → **Explore this path** | “Each branch is a real option…” |
+| 0:50–1:10 | Scroll: immediate effects → Weigh it up → What this path rests on | “Every path shows its tradeoffs… No fake percentages.” |
+| 1:10–1:25 | **Compare** → toggle Time → *Biggest difference* | “Fork never scores or picks a winner.” |
+| 1:25–1:38 | **Choose a path** → note → **Keep this decision** → journal | “The decision stays mine…” |
+| 1:38–1:52 | **Fork Pro** → real price → Test Store purchase → PRO badge | “Fork Pro, powered by RevenueCat…” |
+| 1:52–2:00 | Home with PRO | “Fork doesn’t decide for you.” |
+
+Keep it under 2 minutes, pause briefly after each tap, and never show API keys or dashboards. The full script is in `docs/DEMO_SCRIPT.md`.

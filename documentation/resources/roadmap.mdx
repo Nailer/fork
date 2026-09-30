@@ -1,0 +1,25 @@
+---
+title: "Roadmap"
+description: "What’s planned next for Fork."
+icon: "map"
+---
+
+From the README and the submission notes:
+
+| Item | Why |
+|---|---|
+| **Server-side entitlement check** (RevenueCat REST API) before deep explorations | Stops a modified client from requesting `deep` for free, and enables a server-side weekly limit |
+| **Store builds** with real App Store and Google Play products on the same `fork_pro` entitlement | Real revenue |
+| **Journal sync** across devices (iCloud or a Google account) | Decisions currently live on one device |
+| **Reminders** to revisit a decision | Closes the loop: did the path play out as assumed? |
+| **Annual plan** and an introductory offer in the RevenueCat offering | Pricing flexibility (see [Extending Fork](/contributing/extending-fork)) |
+| **Localisation** | UI copy and prompts in more languages |
+
+## Engineering follow-ups spotted while writing these docs
+
+- **Deploy the current edge function.** Production still runs the older Claude-only version (see the [Deploy checklist](/deploy/checklist)).
+- **Update the README’s AI section.** It still says `claude-opus-5` at `medium` effort. The code now prefers Gemini when its key exists and defaults Claude to `low` effort.
+- **Durable rate limiting** (e.g. a Postgres table or Upstash) instead of per-instance memory.
+- **A store migration** plan (`version: 2` + `migrate`) before changing the `Decision` shape.
+- **Component or E2E tests** for the main flow (the demo recorder already drives it with Playwright).
+- **`expo-updates`** for over-the-air JS updates.

@@ -1,0 +1,56 @@
+---
+title: "API reference"
+description: "The HTTP contract of the analyze-decision function, and the data types that flow through Fork."
+icon: "code"
+---
+
+Fork exposes **one HTTP endpoint**, the AI proxy. Everything else runs in-process on the device. This section also documents the data model and the most important internal modules.
+
+## Base URL
+
+```text
+https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1
+```
+
+Replace the project ref with your own when you self-host.
+
+## Authentication
+
+The function is deployed with JWT verification. Send the project’s **anon** (public) key in both headers:
+
+```http
+Authorization: Bearer <SUPABASE_ANON_KEY>
+apikey: <SUPABASE_ANON_KEY>
+```
+
+Requests without a valid key get a `401` from the Supabase gateway before they reach the function.
+
+## Conventions
+
+- Request and response bodies are JSON (`Content-Type: application/json`).
+- Errors always look like `{ "error": "<code>", "message": "<human text>" }`. Branch on `error`, never on `message`.
+- CORS is open (`*`) for `POST` and `OPTIONS`.
+- Rate limit: 12 requests per 10 minutes per IP, per instance (configurable).
+
+## Reference pages
+
+<CardGroup cols={2}>
+  <Card title="POST /analyze-decision" icon="send" href="/api-reference/analyze-decision">
+    Turn a decision description into a structured analysis.
+  </Card>
+  <Card title="DecisionAnalysis" icon="file-json" href="/api-reference/decision-analysis">
+    The top-level analysis object.
+  </Card>
+  <Card title="Scenario" icon="route" href="/api-reference/scenario">
+    One path: effects, tradeoffs, assumptions, ratings, branches.
+  </Card>
+  <Card title="Dimensions and levels" icon="sliders-horizontal" href="/api-reference/dimensions-and-levels">
+    The 8 comparison dimensions and 3 levels, with labels.
+  </Card>
+  <Card title="Decision record" icon="database" href="/api-reference/decision-record">
+    What the app stores locally for each decision.
+  </Card>
+  <Card title="Modules" icon="blocks" href="/api-reference/modules/limits">
+    limits, compare, store, config.
+  </Card>
+</CardGroup>

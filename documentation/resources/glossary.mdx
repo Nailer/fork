@@ -1,0 +1,32 @@
+---
+title: "Glossary"
+description: "Terms used across the app, the code and these docs."
+icon: "book-a"
+---
+
+| Term | Meaning |
+|---|---|
+| **Decision** | What the user is weighing. It becomes a stored `Decision` record. |
+| **Exploration** | One successful AI analysis. It counts toward the Free weekly allowance. |
+| **Fork** | The app, and the tree visualisation of a decision. |
+| **Path / scenario** | One materially different option (A–D). `Scenario` in the code. |
+| **Branch / twig** | Where a path could split next. Two per path at deep depth (Pro). |
+| **Depth** | `standard` (Free: 2–3 paths, no branches) or `deep` (Pro: 3–4 paths + branches). |
+| **Dimension** | An axis of comparison, e.g. cost or flexibility. There are 8. |
+| **Level** | `low`, `moderate` or `high`. Qualitative, never a score. |
+| **Spread** | How far apart paths are on a dimension (0–2). Used to sort rows. |
+| **Variable / factor** | Something that drives the decision (*Factors that matter*). |
+| **Caution** | A professional-advice banner for medical, legal, financial or safety decisions. |
+| **Draft** | An unsaved decision. Only the 3 newest are kept. |
+| **Kept decision** | Saved to the journal with a choice (or *still deciding*) and a note. |
+| **Journal** | The on-device history of kept decisions. |
+| **Sample** | The bundled example decision, clearly labelled and free. |
+| **Fork Pro** | The paid plan, unlocked by the `fork_pro` entitlement. |
+| **Entitlement** | A RevenueCat access level (`fork_pro`) granted by a product. |
+| **Offering / package** | The RevenueCat set of products shown on the paywall (current offering, monthly package). |
+| **Test Store** | RevenueCat’s simulated store for development (`test_` keys). |
+| **Billing mode** | `test`, `production` or `unconfigured`, derived from the key. |
+| **Edge function / proxy** | `analyze-decision`, the Supabase function that calls the model. |
+| **Structured / plain mode** | A schema-enforced model request vs. schema-in-prompt JSON (the fallback). |
+| **Normalisation** | The forgiving pre-pass that repairs harmless output deviations. |
+| **Anon key** | Supabase’s public API key. Safe in the app bundle. |

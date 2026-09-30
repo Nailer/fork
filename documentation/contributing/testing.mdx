@@ -1,0 +1,49 @@
+---
+title: "Testing"
+description: "The 52-test Jest suite: what each file covers, how mocks are set up, and how to add tests."
+icon: "flask-conical"
+---
+
+```bash
+npm test              # all suites
+npm test -- --ci      # as in CI
+npx jest limits       # one file by name
+npx jest --watch
+```
+
+Jest uses the `jest-expo` preset, ignores `/node_modules/` and `/supabase/`, and loads `jest.setup.js`.
+
+## Suites
+
+| File | Tests | Covers |
+|---|---|---|
+| `parse.test.ts` | 9 | The sample validates; ≥ 2 scenarios; unknown levels rejected; prose → `not_json`; truncated JSON → `not_json`; recovery from fences and prose; never throws on odd input; repairs harmless deviations; `extractJson` |
+| `analyze.test.ts` | 9 | `not_configured` with no endpoint; request headers, body and depth; strips branches and caps paths for standard; retry then success; `invalid_output` after the retry; HTTP → kind without retrying non-transient errors; network → `offline`; timeout; cancellation |
+| `compare.test.ts` | 8 | Spread; only selected dimensions; biggest differences first with no scoring; stable ties; missing ratings; toggling never empties the selection; canonical order; key differences |
+| `limits.test.ts` | 7 | 3 per rolling week; older than 7 days forgotten; future timestamps ignored; unlimited for Pro; next free slot; save cap except re-saves; entitlement → depth |
+| `store.test.ts` | 7 | Free dimensions preselected; saving the choice, note and time; *still deciding*, note updates, delete; viewed paths recorded once; rolling explorations; draft pruning; persistence and wipe |
+| `edge.test.ts` | 7 | Generated `schema.ts`/`parse.ts` match `src/domain`; `OUTPUT_SCHEMA` keys = zod keys; request validation (short, long, trimming, depth default); the prompt reflects depth |
+| `entitlement.test.ts` | 5 | `fork_pro` active check; cancellation is not an error; pending; friendly failure messages; billing mode `test`/`production`/`unconfigured` |
+| **Total** | **52** | |
+
+## Mocks (`jest.setup.js`)
+
+- **AsyncStorage** → the official in-memory mock.
+- **react-native-purchases** → every SDK method as `jest.fn()`, plus `LOG_LEVEL` and the `PURCHASES_ERROR_CODE` values the wrapper maps.
+
+The AI client is tested by injecting `fetchImpl` and `endpoint` options, so there’s no global fetch mocking and no network.
+
+## What isn’t covered
+
+- Screen rendering and navigation (no component or E2E tests)
+- The Deno handler (`index.ts`) itself. Its pure pieces (`prompt.ts`, `parse.ts`, `schema.ts`) are covered.
+- Live provider calls
+
+The demo recorder (`scripts/record-demo.mjs`) drives the real web build with Playwright and works as a manual smoke test of the full flow.
+
+## Adding tests
+
+- Put pure-logic tests next to the others in `src/__tests__/`.
+- Prefer testing `src/domain` functions directly.
+- For the store, call actions through `useForkStore.getState()` and pass explicit `now` values for deterministic time.
+- For the AI client, pass `{ fetchImpl, endpoint, timeoutMs }`.

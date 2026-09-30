@@ -1,0 +1,49 @@
+---
+title: "config"
+description: "src/services/config.ts: public build-time configuration and billing mode."
+icon: "settings-2"
+---
+
+```ts
+export const config: {
+  aiUrl: string;                 // EXPO_PUBLIC_FORK_API_URL ?? DEFAULT_AI_URL
+  aiKey: string | undefined;     // EXPO_PUBLIC_FORK_API_KEY ?? (default URL ? DEFAULT_AI_KEY : undefined)
+  revenueCatKey: string | undefined; // per platform, see below
+  entitlementId: string;         // EXPO_PUBLIC_REVENUECAT_ENTITLEMENT ?? 'fork_pro'
+};
+
+export type BillingMode = 'test' | 'production' | 'unconfigured';
+export function modeForKey(key: string | undefined | null): BillingMode;
+export const billingMode: () => BillingMode;
+```
+
+## Defaults
+
+The defaults are the project’s own **public** endpoints, so a fresh clone runs with live AI and Test Store purchases:
+
+| Constant | Value |
+|---|---|
+| `DEFAULT_AI_URL` | `https://gwruqdpbugqjrkyfvipa.supabase.co/functions/v1/analyze-decision` |
+| `DEFAULT_AI_KEY` | The Supabase anon JWT for project `gwruqdpbugqjrkyfvipa` (role `anon`) |
+| `DEFAULT_RC_TEST_KEY` | `test_hpOvIzAjDWcgumcXqMtHjYBrjpG` |
+
+The anon key is designed to be public: the edge function keeps the model key server-side and rate-limits requests. A RevenueCat `test_` key is a public SDK key for the simulated Test Store.
+
+## RevenueCat key per platform
+
+| Platform | Key |
+|---|---|
+| iOS | `EXPO_PUBLIC_REVENUECAT_IOS_KEY` ?? test key |
+| Android | `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` ?? test key |
+| Web | test key |
+
+## modeForKey
+
+```ts
+modeForKey(undefined)        // 'unconfigured'
+modeForKey('test_abc')       // 'test'
+modeForKey('appl_abc')       // 'production'
+modeForKey('goog_abc')       // 'production'
+```
+
+`read()` treats empty and whitespace-only values as unset, so `EXPO_PUBLIC_X=` in a `.env` falls back to the default.
